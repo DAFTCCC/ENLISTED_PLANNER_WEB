@@ -1,0 +1,442 @@
+.readiness-page .readiness-summary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.readiness-page .readiness-summary h2 {
+  margin: 0 0 5px;
+}
+.readiness-page .readiness-summary p {
+  margin: 0;
+}
+.readiness-page .readiness-summary-icon {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #207c72;
+  background: #e8f3ef;
+}
+.readiness-page .compact-date {
+  margin: 0 0 0 auto;
+  min-width: 170px;
+}
+.readiness-columns {
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.readiness-page .category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 20px;
+}
+.readiness-page .category-chip {
+  border: 1px solid #dce5e2;
+  border-radius: 18px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6c6a;
+  background: #fff;
+  cursor: pointer;
+}
+.readiness-page .category-chip:hover {
+  background: #f1f6f4;
+}
+.readiness-page .category-chip.active {
+  color: #176657;
+  border-color: #a9d2c3;
+  background: #e7f3ed;
+}
+.readiness-page .habit-row {
+  gap: 10px;
+  align-items: center;
+}
+.readiness-page .habit-check {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #c7d5cf;
+  border-radius: 8px;
+  background: white;
+  color: #fff;
+  cursor: pointer;
+}
+.readiness-page .habit-check.checked {
+  background: #237c62;
+  border-color: #237c62;
+}
+.readiness-page .row-content {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.readiness-page .row-content strong {
+  overflow-wrap: anywhere;
+}
+.readiness-page .completed-title {
+  color: #6c7a75;
+  text-decoration: line-through;
+}
+.readiness-page .section-form {
+  border-top: 1px solid #e9efec;
+  padding-top: 22px;
+  margin-top: 20px;
+}
+.readiness-page .section-form h3 {
+  margin-top: 0;
+}
+.readiness-page .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.readiness-page .readiness-goals {
+  display: grid;
+  gap: 15px;
+}
+.readiness-page .readiness-goal {
+  border: 1px solid #e2e9e5;
+  border-radius: 12px;
+  padding: 16px;
+}
+.readiness-page .goal-topline {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: start;
+}
+.readiness-page .goal-topline > div:first-child {
+  min-width: 0;
+}
+.readiness-page .goal-topline h3 {
+  margin: 12px 0 6px;
+  overflow-wrap: anywhere;
+}
+.readiness-page .row-actions {
+  display: flex;
+  flex-shrink: 0;
+}
+.readiness-page .goal-progress {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #63716b;
+}
+.readiness-page .goal-progress > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.readiness-page .goal-progress input {
+  width: 100%;
+  accent-color: #267e65;
+}
+.readiness-page .readiness-note {
+  margin-top: 24px;
+  max-width: 800px;
+  line-height: 1.7;
+}
+.tools-page .tool-panel {
+  margin-bottom: 24px;
+}
+.tool-heading {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+.tool-heading h2 {
+  margin-top: 0;
+}
+.tool-heading p {
+  margin-bottom: 0;
+}
+.tool-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #e9f2ec;
+  color: #32765b;
+  flex: 0 0 44px;
+}
+.tool-icon.fitness {
+  color: #927249;
+  background: #f7f0e5;
+}
+.tools-page .tool-columns {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.tools-page .income-field {
+  margin-bottom: 18px;
+}
+.tools-page .tool-subheading {
+  margin-top: 26px;
+}
+.tools-page .fitness-score-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.tools-page .calculation-card {
+  padding: 26px;
+  border: 1px solid #dee8e1;
+  background: #f4f8f5;
+  border-radius: 14px;
+}
+.tools-page .calculation-card > .eyebrow {
+  color: #60786b;
+  font-size: 10px;
+}
+.tools-page .big-result {
+  display: block;
+  margin: 12px 0 17px;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -1.4px;
+  color: #214f3d;
+  overflow-wrap: anywhere;
+}
+.tools-page .big-result > span {
+  font-size: 15px;
+  font-weight: 500;
+  color: #65766c;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.tools-page .big-result.negative {
+  color: #a5423c;
+}
+.calculation-breakdown {
+  margin: 23px 0;
+}
+.calculation-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #dce7df;
+  font-size: 13px;
+}
+.calculation-breakdown dt {
+  color: #607168;
+}
+.calculation-breakdown dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+.tools-page .fitness-note {
+  line-height: 1.7;
+}
+.tools-page .fitness-note strong {
+  font-size: 13px;
+}
+.tools-page .external-resource {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #256b54;
+  text-decoration: none;
+  margin-top: 9px;
+}
+.tools-page .external-resource:hover {
+  text-decoration: underline;
+}
+.settings-columns {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.settings-stack {
+  display: grid;
+  gap: 24px;
+}
+.settings-page p {
+  line-height: 1.7;
+}
+.settings-page .backup-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px 0;
+}
+.settings-page .local-first-note {
+  padding: 18px 0 0;
+  margin-top: 20px;
+  border-top: 1px solid #e5ebe7;
+}
+.settings-page .local-first-note strong {
+  font-size: 13px;
+}
+.settings-page .local-first-note p {
+  margin-bottom: 0;
+}
+.settings-page .reset-panel h2 {
+  font-size: 16px;
+  margin-top: 0;
+}
+.settings-page .reset-panel p {
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+.settings-page .button.danger-outline {
+  border: 1px solid #e3b4af;
+  color: #a5413c;
+  background: #fff;
+}
+.settings-page .button.danger-outline:hover {
+  background: #fff5f3;
+}
+.settings-page .button.danger {
+  color: #fff;
+  border-color: #a4413c;
+  background: #a4413c;
+}
+.settings-page .button.danger:hover {
+  background: #8f352f;
+}
+.settings-page .settings-feedback {
+  margin: 20px 0;
+  font-size: 13px;
+  color: #287558;
+}
+.settings-page .settings-feedback.error-text {
+  color: #a4413c;
+}
+.settings-page .about-panel {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 40px;
+  margin-top: 24px;
+}
+.settings-page .about-panel .eyebrow {
+  font-size: 9px;
+}
+.settings-page .about-panel h2 {
+  margin-top: 13px;
+}
+.settings-page .about-panel .reference-link {
+  margin-top: 10px;
+  text-decoration: none;
+}
+.settings-page .settings-confirmation {
+  max-width: 520px;
+}
+.settings-page .confirmation-content {
+  line-height: 1.7;
+}
+.settings-page .import-summary {
+  display: grid;
+  gap: 0;
+  padding: 8px 17px;
+  background: #f5f8f5;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.settings-page .import-summary > div {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  padding: 9px 0;
+}
+.settings-page .import-summary dt {
+  color: #6b756e;
+}
+.settings-page .import-summary dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.settings-page .visually-hidden,
+.readiness-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 1050px) {
+  .readiness-columns,
+  .settings-columns {
+    grid-template-columns: 1fr;
+  }
+  .tools-page .tool-columns {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .tools-page .fitness-score-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+@media (max-width: 650px) {
+  .readiness-page .readiness-summary {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .readiness-page .readiness-summary > div:nth-child(2) {
+    flex: 1;
+    min-width: 170px;
+  }
+  .readiness-page .compact-date {
+    width: 100%;
+    margin-left: 0;
+  }
+  .tools-page .tool-columns,
+  .settings-page .about-panel {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .tools-page .tool-panel > .panel-heading {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .tools-page .calculation-card {
+    padding: 21px;
+  }
+  .tools-page .big-result {
+    font-size: 38px;
+  }
+  .tools-page .fitness-score-fields {
+    grid-template-columns: 1fr;
+  }
+  .tool-heading {
+    align-items: start;
+  }
+  .readiness-page .habit-row {
+    gap: 8px;
+  }
+  .readiness-page .habit-row .icon-button {
+    width: 29px;
+    padding: 5px;
+  }
+}
