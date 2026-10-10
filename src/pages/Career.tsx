@@ -13,7 +13,9 @@ import {
 import { usePlanner } from "../lib/planner";
 import { formatDate, localDate } from "../lib/dates";
 import { getPromotionEstimate } from "../lib/calculations";
+import { removePlannerRecord } from "../lib/relationships";
 import type { Goal } from "../lib/types";
+import CareerPlanning from "./CareerPlanning";
 import ProfessionalDialog from "./ProfessionalDialog";
 import { isProfessionalDate } from "./professional-date";
 import "./professional.css";
@@ -94,10 +96,7 @@ export default function Career() {
       goal === "new"
         ? blankGoal()
         : {
-            title: goal.title,
-            targetDate: goal.targetDate,
-            category: goal.category,
-            progress: goal.progress,
+            ...goal,
           },
     );
     setEditing(goal);
@@ -308,6 +307,8 @@ export default function Career() {
                     targetDate: estimate.standardDate,
                     category: "Promotion preparation",
                     progress: 0,
+                    source: "Estimate",
+                    sourceRef: estimate.ruleVersion,
                   });
                   setEditing("new");
                 }}
@@ -366,6 +367,7 @@ export default function Career() {
           </div>
         </section>
       </div>
+      <CareerPlanning />
       <section>
         <div className="professional-heading-row" style={{ marginBottom: 18 }}>
           <div>
@@ -426,8 +428,19 @@ export default function Career() {
                         Target passed
                       </span>
                     )}
-                  <span>User entered</span>
+                  <span>{goal.source || "User entered"}</span>
                 </div>
+                {goal.sourceRef &&
+                  !goal.sourceRef.startsWith("career-plan:") &&
+                  !goal.sourceRef.startsWith("evaluation-closeout:") && (
+                    <p className="small muted">Source: {goal.sourceRef}</p>
+                  )}
+                {goal.sourceRef?.startsWith("evaluation-closeout:") &&
+                  goal.sourceRef.includes(" | ") && (
+                    <p className="small muted">
+                      Reference: {goal.sourceRef.split(" | ")[1]}
+                    </p>
+                  )}
                 <div className="professional-goal-progress">
                   <label htmlFor={`progress-${goal.id}`}>
                     <span>
@@ -572,8 +585,11 @@ export default function Career() {
                 />
               </label>
               <p className="small muted">
-                Your target is a user-entered planning date. It does not
-                establish official eligibility.
+                Your target is a{" "}
+                {draft.source === "Estimate"
+                  ? "calculated estimate"
+                  : "user-entered planning date"}
+                . It does not establish official eligibility.
               </p>
               {goalError && (
                 <p className="error-text small" role="alert">
@@ -613,9 +629,7 @@ export default function Career() {
               className="button primary"
               onClick={() => {
                 mutate((next) => {
-                  next.goals = next.goals.filter(
-                    (item) => item.id !== deleteGoal.id,
-                  );
+                  removePlannerRecord(next, "goals", deleteGoal.id);
                 });
                 setDeleteGoal(null);
               }}

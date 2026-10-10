@@ -2006,3 +2006,127 @@ main#main-content {
 .block-drag-handle {
   touch-action: none;
 }
+
+.sidebar > nav {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.sidebar-bottom {
+  flex-shrink: 0;
+  padding-top: 18px;
+}
+.planning-insights {
+  margin-bottom: 24px;
+}
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.insight-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  background: #faf9f5;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.insight-card:hover {
+  border-color: #b28c52;
+  background: #f5f1e8;
+}
+.insight-card > span:not(.insight-kind) {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.insight-card > strong {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.insight-kind {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #e9eef1;
+  color: #3c6074;
+}
+.insight-kind.due {
+  background: #faede6;
+  color: #97533d;
+}
+.insight-kind.blocked {
+  background: #f2ebdd;
+  color: #7a632f;
+}
+.insight-link {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.planning-insights > .button {
+  margin-top: 12px;
+}
+.priority-description {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.priority-description small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.agenda-source-plan {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  background: transparent;
+  color: var(--ink);
+}
+.agenda-source-plan > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agenda-source-plan strong {
+  display: block;
+  font-size: 12px;
+}
+.agenda-source-plan small {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.agenda-source-plan:hover strong {
+  color: #8d6a30;
+}
+@media (max-width: 760px) {
+  .insight-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media print {
+  .planning-insights {
+    display: none;
+  }
+}

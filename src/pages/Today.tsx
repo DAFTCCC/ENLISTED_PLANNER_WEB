@@ -1,4 +1,10 @@
-import { useRef, useState, type FormEvent, type PointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type PointerEvent,
+} from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,6 +23,7 @@ import {
   Printer,
   Maximize2,
   GripVertical,
+  NotebookPen,
 } from "lucide-react";
 import { usePlanner } from "../lib/planner";
 import {
@@ -32,7 +39,10 @@ import {
   durationLabel,
   totalPlannedMinutes,
 } from "../lib/time-blocks";
-import type { BlockCategory, TimeBlock } from "../lib/types";
+import type { BlockCategory, Page, Task, TimeBlock } from "../lib/types";
+import { plannerInsights } from "../lib/intelligence";
+import { removePlannerRecord } from "../lib/relationships";
+import { taskCompletionError } from "../lib/workflow";
 
 const categories: BlockCategory[] = [
   "Duty",
@@ -51,6 +61,9 @@ interface Props {
   setDate: (date: string) => void;
   onCalendar: () => void;
   onCaptures: () => void;
+  onNavigate?: (page: Page) => void;
+  pendingTaskId?: string | null;
+  onTaskOpened?: () => void;
 }
 
 export default function Today({
@@ -58,6 +71,9 @@ export default function Today({
   setDate,
   onCalendar,
   onCaptures,
+  onNavigate,
+  pendingTaskId,
+  onTaskOpened,
 }: Props) {
   const { state, mutate } = usePlanner();
   const [editing, setEditing] = useState<TimeBlock | null>(null);
@@ -67,6 +83,7 @@ export default function Today({
   const [taskTitle, setTaskTitle] = useState("");
   const [captureTitle, setCaptureTitle] = useState("");
   const [fullDay, setFullDay] = useState(false);
+  const [showAllInsights, setShowAllInsights] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState<{
     id: string;
@@ -81,7 +98,10 @@ export default function Today({
   const blocks = state.blocks
     .filter((block) => block.date === date)
     .sort((a, b) => a.start.localeCompare(b.start));
-  const tasks = state.tasks.filter((task) => task.date === date);
+  const tasks = state.tasks.filter(
+    (task) =>
+      task.date === date || blocks.some((block) => block.taskId === task.id),
+  );
   const events = state.events.filter((event) => occursOn(event, date));
   const completed = blocks.filter((block) => block.completed).length;
   const planned = totalPlannedMinutes(blocks);
@@ -98,6 +118,60 @@ export default function Today({
     (_, i) => i + startHour,
   );
   const isToday = date === localDate();
+  const insights = plannerInsights(state, date);
+
+  function scheduleTask(task: Task) {
+    const duration = Math.min(
+      480,
+      Math.max(15, Math.ceil((task.estimatedMinutes || 30) / 15) * 15),
+    );
+    setError("");
+    setRepeat("once");
+    setEditing({
+      id: crypto.randomUUID(),
+      date,
+      start: "09:00",
+      end: timeString(540 + duration),
+      title: task.title,
+      category: "Duty",
+      notes: task.notes || "",
+      completed: false,
+      taskId: task.id,
+    });
+  }
+  useEffect(() => {
+    if (!pendingTaskId) return;
+    const task = state.tasks.find((item) => item.id === pendingTaskId);
+    if (task) scheduleTask(task);
+    onTaskOpened?.();
+  }, [pendingTaskId, date]);
+
+  function recordTaskResult(task: Task) {
+    if (!state.captures.some((capture) => capture.taskId === task.id))
+      mutate((draft) => {
+        draft.captures.push({
+          id: crypto.randomUUID(),
+          title: task.title,
+          date,
+          category: "Mission",
+          context: task.notes || "",
+          actions: "",
+          impact: "",
+          outcome: "",
+          lessons: "",
+          tags: [],
+          taskId: task.id,
+          projectId: task.projectId || "",
+          objectiveId:
+            task.objectiveId ||
+            state.projects.find((project) => project.id === task.projectId)
+              ?.objectiveId ||
+            "",
+          memberIds: task.assigneeId ? [task.assigneeId] : [],
+        });
+      });
+    onCaptures();
+  }
 
   function newBlock(start = "09:00", end = "10:00") {
     setError("");
@@ -387,6 +461,59 @@ export default function Today({
           </div>
         </div>
       </section>
+      {insights.length > 0 && (
+        <section
+          className="panel planning-insights"
+          aria-label="Planning insights"
+        >
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">CONNECTED PLANNING</p>
+              <h2>What needs your attention</h2>
+              <p className="muted small">
+                Based on your saved deadlines, dependencies, and preparation.
+              </p>
+            </div>
+            <span className="badge">{insights.length}</span>
+          </div>
+          <div className="insight-grid">
+            {(showAllInsights ? insights : insights.slice(0, 4)).map(
+              (insight) => (
+                <button
+                  key={insight.id}
+                  className="insight-card"
+                  onClick={() =>
+                    onNavigate
+                      ? onNavigate(insight.page)
+                      : (window.location.hash = insight.page)
+                  }
+                >
+                  <span
+                    className={`insight-kind ${insight.urgency.toLowerCase()}`}
+                  >
+                    {insight.urgency}
+                  </span>
+                  <strong>{insight.title}</strong>
+                  <span>{insight.explanation}</span>
+                  <span className="insight-link">
+                    Review <ArrowUpRight size={14} />
+                  </span>
+                </button>
+              ),
+            )}
+          </div>
+          {insights.length > 4 && (
+            <button
+              className="button ghost"
+              onClick={() => setShowAllInsights(!showAllInsights)}
+            >
+              {showAllInsights
+                ? "Show fewer prompts"
+                : `Show all ${insights.length} prompts`}
+            </button>
+          )}
+        </section>
+      )}
       {notice && (
         <div className="notice" role="status">
           {notice}
@@ -506,14 +633,25 @@ export default function Today({
                     <button
                       className="block-complete"
                       aria-label={`${block.completed ? "Mark incomplete" : "Complete"} ${block.title}`}
-                      onClick={() =>
+                      onClick={() => {
+                        const task = state.tasks.find(
+                          (item) => item.id === block.taskId,
+                        );
+                        const issue =
+                          task && !block.completed
+                            ? taskCompletionError(task, state.tasks)
+                            : null;
+                        if (issue)
+                          setNotice(
+                            `Time block completed; the tasker still needs its prerequisites. ${issue}`,
+                          );
                         mutate((draft) => {
                           const item = draft.blocks.find(
                             (item) => item.id === block.id,
                           );
                           if (item) item.completed = !item.completed;
-                        })
-                      }
+                        });
+                      }}
                     >
                       {block.completed ? <Check size={13} /> : null}
                     </button>
@@ -574,35 +712,54 @@ export default function Today({
                     <button
                       className="task-check"
                       aria-label={`${task.completed ? "Reopen" : "Complete"} priority ${task.title}`}
-                      onClick={() =>
+                      onClick={() => {
+                        const issue = taskCompletionError(task, state.tasks);
+                        if (!task.completed && issue) {
+                          setNotice(issue);
+                          return;
+                        }
                         mutate((draft) => {
                           const item = draft.tasks.find(
                             (item) => item.id === task.id,
                           );
                           if (item) item.completed = !item.completed;
-                        })
-                      }
+                        });
+                      }}
                     >
                       {task.completed && <Check size={13} />}
                     </button>
-                    <span>{task.title}</span>
+                    <span className="priority-description">
+                      {task.title}
+                      {(task.projectId || task.assigneeId) && (
+                        <small>
+                          {[
+                            state.projects.find(
+                              (project) => project.id === task.projectId,
+                            )?.title,
+                            state.members.find(
+                              (member) => member.id === task.assigneeId,
+                            )?.name,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </small>
+                      )}
+                    </span>
+                    {task.completed && (
+                      <button
+                        className="icon-button subtle"
+                        aria-label={`Record result for ${task.title}`}
+                        title="Build an accomplishment from this tasker"
+                        onClick={() => recordTaskResult(task)}
+                      >
+                        <NotebookPen size={14} />
+                      </button>
+                    )}
                     <button
                       className="icon-button subtle"
                       aria-label={`Schedule priority ${task.title}`}
                       title="Give this priority a time block"
-                      onClick={() => {
-                        newBlock();
-                        setEditing({
-                          id: crypto.randomUUID(),
-                          date,
-                          start: "09:00",
-                          end: "09:30",
-                          title: task.title,
-                          category: "Duty",
-                          notes: "",
-                          completed: false,
-                        });
-                      }}
+                      onClick={() => scheduleTask(task)}
                     >
                       <Clock3 size={14} />
                     </button>
@@ -612,9 +769,7 @@ export default function Today({
                       onClick={() => {
                         if (window.confirm(`Delete priority “${task.title}”?`))
                           mutate((draft) => {
-                            draft.tasks = draft.tasks.filter(
-                              (item) => item.id !== task.id,
-                            );
+                            removePlannerRecord(draft, "tasks", task.id);
                           });
                       }}
                     >
@@ -793,6 +948,34 @@ export default function Today({
                     setEditing({ ...editing, title: e.target.value })
                   }
                 />
+              </label>
+              <label className="field">
+                Linked tasker
+                <select
+                  value={editing.taskId || ""}
+                  onChange={(event) => {
+                    const task = state.tasks.find(
+                      (item) => item.id === event.target.value,
+                    );
+                    setEditing({
+                      ...editing,
+                      taskId: event.target.value,
+                      title: editing.title || task?.title || "",
+                    });
+                  }}
+                >
+                  <option value="">Standalone time block</option>
+                  {state.tasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title}
+                      {task.completed ? " (complete)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <span className="muted small">
+                  Completion stays connected across your tasker and its
+                  scheduled blocks.
+                </span>
               </label>
               <div className="form-grid">
                 <label className="field">

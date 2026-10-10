@@ -8,9 +8,227 @@ import {
   STORAGE_KEY,
   usePlanner,
 } from "./planner";
+import type { PlannerState } from "./types";
+import { removePlannerRecord } from "./relationships";
 
 function wrapper({ children }: { children: ReactNode }) {
   return <PlannerProvider>{children}</PlannerProvider>;
+}
+
+const v2Collections = [
+  "projects",
+  "objectives",
+  "contacts",
+  "developmentActions",
+  "disciplinePlans",
+  "meetings",
+  "battleRhythms",
+  "careerPlans",
+] as const;
+
+function legacyState() {
+  const legacy = populatedState() as unknown as Record<string, unknown>;
+  legacy.version = 1;
+  for (const key of v2Collections) delete legacy[key];
+  return legacy;
+}
+
+function linkedState(): PlannerState {
+  const state = populatedState();
+  state.contacts = [
+    {
+      id: "contact-1",
+      name: "Resource partner",
+      role: "Advisor",
+      agency: "Support agency",
+      phone: "555-0100",
+      email: "advisor@example.test",
+      location: "Building 1",
+      notes: "Office hours",
+    },
+  ];
+  state.members[0] = {
+    ...state.members[0],
+    team: "Section A",
+    contactId: "contact-1",
+    role: "Wingman",
+  };
+  state.objectives = [
+    {
+      id: "objective-1",
+      title: "Improve readiness",
+      level: "Wing",
+      parentId: "",
+      mission: "Prepare the team",
+      measure: "Qualifications complete",
+      targetDate: "2027-01-01",
+      notes: "User interpretation",
+    },
+    {
+      id: "objective-2",
+      title: "Finish section training",
+      level: "Section",
+      parentId: "objective-1",
+      mission: "Train together",
+      measure: "Course completions",
+      targetDate: "2026-12-01",
+      notes: "Local objective",
+    },
+  ];
+  state.projects = [
+    {
+      id: "project-1",
+      title: "Training sprint",
+      objective: "Close qualification gaps",
+      startDate: "2026-10-01",
+      dueDate: "2026-12-01",
+      status: "Active",
+      ownerId: "member-1",
+      objectiveId: "objective-2",
+      resources: "Two instructors",
+      risks: "Schedule changes",
+      successMeasure: "Complete courses",
+      baseline: "20%",
+      target: "100%",
+      actual: "40%",
+      notes: "Coordinate coverage",
+      swot: {
+        strengths: "Experienced instructors",
+        weaknesses: "Limited time",
+        opportunities: "Shared sessions",
+        threats: "Mission surge",
+      },
+    },
+  ];
+  state.meetings = [
+    {
+      id: "meeting-1",
+      title: "Training coordination",
+      date: "2026-10-12",
+      time: "14:00",
+      objective: "Assign actions",
+      participants: ["External advisor", "Casey"],
+      agenda: "Review needs",
+      decisions: "Book training",
+      nextDate: "2026-10-19",
+      notes: "Keep minutes",
+    },
+  ];
+  state.tasks[0] = {
+    ...state.tasks[0],
+    projectId: "project-1",
+    assigneeId: "member-1",
+    objectiveId: "objective-2",
+    meetingId: "meeting-1",
+    careerPlanId: "career-1",
+    requestor: "Section lead",
+    suspenseTime: "16:00",
+    status: "Open",
+    dependencyIds: ["prerequisite"],
+    notes: "Bring course notes",
+    estimatedMinutes: 60,
+    kind: "Task",
+  };
+  state.tasks.push({
+    id: "prerequisite",
+    title: "Reserve room",
+    date: "",
+    completed: false,
+    priority: "Normal",
+    status: "Open",
+    dependencyIds: [],
+    kind: "Milestone",
+  });
+  state.battleRhythms = [
+    {
+      id: "rhythm-1",
+      title: "Review training",
+      mga: "Leading People",
+      frequency: "Quarterly",
+      startDate: "2026-10-08",
+      startTime: "09:00",
+      endTime: "10:00",
+      category: "Development",
+      notes: "Bring training roster",
+    },
+  ];
+  state.blocks[0] = {
+    ...state.blocks[0],
+    taskId: "task-1",
+    rhythmId: "rhythm-1",
+    completed: false,
+  };
+  state.developmentActions = [
+    {
+      id: "development-1",
+      memberId: "member-1",
+      title: "Complete course",
+      kind: "Training",
+      dueDate: "2026-11-01",
+      status: "Planned",
+      notes: "Arrange coverage",
+      taskId: "task-1",
+    },
+  ];
+  state.disciplinePlans = [
+    {
+      id: "discipline-1",
+      memberId: "member-1",
+      title: "Clarify expectations",
+      expectation: "Timely communication",
+      observedGap: "Missed check-in",
+      supportPlan: "Provide clear schedule",
+      followUpDate: "2026-10-20",
+      consultation: "Requested",
+      status: "Monitoring",
+      notes: "Preparation only",
+    },
+  ];
+  state.events[0] = {
+    ...state.events[0],
+    recurrence: "Quarterly",
+    developmentActionId: "development-1",
+  };
+  state.captures[0] = {
+    ...state.captures[0],
+    impact: "Reduced wait time",
+    evidence: "Training log",
+    mga: "Leading People",
+    alq: "Inclusion and teamwork",
+    projectId: "project-1",
+    taskId: "task-1",
+    objectiveId: "objective-2",
+    memberIds: ["member-1"],
+  };
+  state.goals[0] = {
+    ...state.goals[0],
+    objectiveId: "objective-2",
+    source: "Estimate",
+    sourceRef: "career-plan:career-1",
+  };
+  state.careerPlans = [
+    {
+      id: "career-1",
+      title: "Prepare review package",
+      pathway: "WAPS",
+      dueDate: "2027-01-01",
+      afsc: "User entered",
+      cycle: "User cycle",
+      status: "Preparing",
+      checklist: [
+        {
+          id: "check-1",
+          label: "Verify current guidance",
+          completed: false,
+          taskId: "task-1",
+        },
+      ],
+      notes: "Ask personnel office",
+      sourceUrl: "https://www.afpc.af.mil/",
+      lastVerified: "2026-10-09",
+    },
+  ];
+  return state;
 }
 
 const storageMethods = {
@@ -173,7 +391,7 @@ describe("backup validation", () => {
     [
       "unsupported version",
       (value: Record<string, unknown>) => {
-        value.version = 2;
+        value.version = 3;
       },
     ],
     [
@@ -625,5 +843,616 @@ describe("changes from other tabs", () => {
     const { result } = renderHook(() => usePlanner(), { wrapper });
     act(() => result.current.importData(compact));
     expect(parsePlannerData(result.current.exportData())).toEqual(backup);
+  });
+});
+
+describe("version 1 migration and linked version 2 backups", () => {
+  it("migrates every legacy collection and field while adding empty linked collections", () => {
+    const legacy = legacyState();
+    const migrated = parsePlannerData(JSON.stringify(legacy));
+    expect(migrated.version).toBe(2);
+    for (const [key, value] of Object.entries(legacy))
+      if (key !== "version")
+        expect((migrated as unknown as Record<string, unknown>)[key]).toEqual(
+          value,
+        );
+    for (const key of v2Collections) expect(migrated[key]).toEqual([]);
+  });
+
+  it("loads legacy storage without rewriting its original bytes, then saves version 2 on edit", () => {
+    const raw = JSON.stringify(legacyState(), null, 2);
+    localStorage.setItem(STORAGE_KEY, raw);
+    const writes = vi.spyOn(localStorage, "setItem");
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    expect(result.current.state.version).toBe(2);
+    expect(result.current.state.captures).toEqual(populatedState().captures);
+    expect(writes).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(raw);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.profile.name = "Updated name";
+      }),
+    );
+    const saved = parsePlannerData(localStorage.getItem(STORAGE_KEY)!);
+    expect(saved.version).toBe(2);
+    expect(saved.captures).toEqual(populatedState().captures);
+    expect(saved.profile.name).toBe("Updated name");
+  });
+
+  it("imports a legacy backup into a linked plan without dropping any legacy content", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(linkedState()));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    const legacy = legacyState();
+    act(() => result.current.importData(JSON.stringify(legacy)));
+    expect(parsePlannerData(result.current.exportData())).toEqual(
+      parsePlannerData(JSON.stringify(legacy)),
+    );
+    expect(result.current.state.captures).toEqual(populatedState().captures);
+    expect(result.current.state.projects).toEqual([]);
+  });
+
+  it("round-trips every new record, link, structured field and historical capture field exactly", () => {
+    const original = linkedState();
+    expect(parsePlannerData(JSON.stringify(original))).toEqual(original);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(original));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    expect(parsePlannerData(result.current.exportData())).toEqual(original);
+  });
+
+  it.each(v2Collections)(
+    "requires the new %s collection in version 2",
+    (collection) => {
+      const state = linkedState() as unknown as Record<string, unknown>;
+      delete state[collection];
+      expect(() => parsePlannerData(JSON.stringify(state))).toThrow(
+        /is missing/,
+      );
+    },
+  );
+
+  it.each([
+    [
+      "unknown project field",
+      (state: PlannerState) => {
+        (state.projects[0] as unknown as Record<string, unknown>).unknown =
+          "retain or reject";
+      },
+    ],
+    [
+      "incomplete SWOT",
+      (state: PlannerState) => {
+        delete (state.projects[0].swot as unknown as Record<string, unknown>)
+          .threats;
+      },
+    ],
+    [
+      "unknown task extension",
+      (state: PlannerState) => {
+        (state.tasks[0] as unknown as Record<string, unknown>).taskerId = "bad";
+      },
+    ],
+    [
+      "invalid task status",
+      (state: PlannerState) => {
+        state.tasks[0].status = "Closed" as never;
+      },
+    ],
+    [
+      "inconsistent task completion",
+      (state: PlannerState) => {
+        state.tasks[0].status = "Done";
+      },
+    ],
+    [
+      "invalid suspense time",
+      (state: PlannerState) => {
+        state.tasks[0].suspenseTime = "24:00";
+      },
+    ],
+    [
+      "negative estimated effort",
+      (state: PlannerState) => {
+        state.tasks[0].estimatedMinutes = -1;
+      },
+    ],
+    [
+      "invalid capture MGA",
+      (state: PlannerState) => {
+        state.captures[0].mga = "Mission" as never;
+      },
+    ],
+    [
+      "invalid capture ALQ",
+      (state: PlannerState) => {
+        state.captures[0].alq = "Leadership" as never;
+      },
+    ],
+    [
+      "duplicate capture member IDs",
+      (state: PlannerState) => {
+        state.captures[0].memberIds = ["member-1", "member-1"];
+      },
+    ],
+    [
+      "invalid career pathway",
+      (state: PlannerState) => {
+        state.careerPlans[0].pathway = "Guaranteed promotion" as never;
+      },
+    ],
+    [
+      "duplicate checklist identities",
+      (state: PlannerState) => {
+        state.careerPlans[0].checklist.push({
+          ...state.careerPlans[0].checklist[0],
+        });
+      },
+    ],
+    [
+      "invalid last verification date",
+      (state: PlannerState) => {
+        state.careerPlans[0].lastVerified = "2026-02-30";
+      },
+    ],
+    [
+      "invalid development status",
+      (state: PlannerState) => {
+        state.developmentActions[0].status = "Done" as never;
+      },
+    ],
+    [
+      "invalid discipline consultation",
+      (state: PlannerState) => {
+        state.disciplinePlans[0].consultation = "Approved" as never;
+      },
+    ],
+    [
+      "invalid meeting participants",
+      (state: PlannerState) => {
+        state.meetings[0].participants = [42 as never];
+      },
+    ],
+    [
+      "overnight battle rhythm",
+      (state: PlannerState) => {
+        state.battleRhythms[0].endTime = "08:00";
+      },
+    ],
+    [
+      "duplicate new record identity",
+      (state: PlannerState) => {
+        state.projects.push({ ...state.projects[0] });
+      },
+    ],
+  ])(
+    "rejects %s rather than discarding or changing it",
+    (_description, change) => {
+      const original = linkedState();
+      change(original);
+      expect(() => parsePlannerData(JSON.stringify(original))).toThrow(
+        /Invalid planner backup/,
+      );
+    },
+  );
+
+  it.each([
+    [
+      "block task",
+      (state: PlannerState) => {
+        state.blocks[0].taskId = "missing";
+      },
+    ],
+    [
+      "block rhythm",
+      (state: PlannerState) => {
+        state.blocks[0].rhythmId = "missing";
+      },
+    ],
+    [
+      "task project",
+      (state: PlannerState) => {
+        state.tasks[0].projectId = "missing";
+      },
+    ],
+    [
+      "task assignee",
+      (state: PlannerState) => {
+        state.tasks[0].assigneeId = "missing";
+      },
+    ],
+    [
+      "task objective",
+      (state: PlannerState) => {
+        state.tasks[0].objectiveId = "missing";
+      },
+    ],
+    [
+      "task meeting",
+      (state: PlannerState) => {
+        state.tasks[0].meetingId = "missing";
+      },
+    ],
+    [
+      "task career plan",
+      (state: PlannerState) => {
+        state.tasks[0].careerPlanId = "missing";
+      },
+    ],
+    [
+      "career checklist task",
+      (state: PlannerState) => {
+        state.careerPlans[0].checklist[0].taskId = "missing";
+      },
+    ],
+    [
+      "task dependency",
+      (state: PlannerState) => {
+        state.tasks[0].dependencyIds = ["missing"];
+      },
+    ],
+    [
+      "event member",
+      (state: PlannerState) => {
+        state.events[0].memberId = "missing";
+      },
+    ],
+    [
+      "event development action",
+      (state: PlannerState) => {
+        state.events[0].developmentActionId = "missing";
+      },
+    ],
+    [
+      "event discipline plan",
+      (state: PlannerState) => {
+        state.events[0].disciplinePlanId = "missing";
+      },
+    ],
+    [
+      "event meeting",
+      (state: PlannerState) => {
+        state.events[0].meetingId = "missing";
+      },
+    ],
+    [
+      "event goal",
+      (state: PlannerState) => {
+        state.events[0].goalId = "missing";
+      },
+    ],
+    [
+      "capture project",
+      (state: PlannerState) => {
+        state.captures[0].projectId = "missing";
+      },
+    ],
+    [
+      "capture task",
+      (state: PlannerState) => {
+        state.captures[0].taskId = "missing";
+      },
+    ],
+    [
+      "capture objective",
+      (state: PlannerState) => {
+        state.captures[0].objectiveId = "missing";
+      },
+    ],
+    [
+      "capture member",
+      (state: PlannerState) => {
+        state.captures[0].memberIds = ["missing"];
+      },
+    ],
+    [
+      "goal objective",
+      (state: PlannerState) => {
+        state.goals[0].objectiveId = "missing";
+      },
+    ],
+    [
+      "member contact",
+      (state: PlannerState) => {
+        state.members[0].contactId = "missing";
+      },
+    ],
+    [
+      "member supervisor",
+      (state: PlannerState) => {
+        state.members[0].supervisorId = "missing";
+      },
+    ],
+    [
+      "project owner",
+      (state: PlannerState) => {
+        state.projects[0].ownerId = "missing";
+      },
+    ],
+    [
+      "project objective",
+      (state: PlannerState) => {
+        state.projects[0].objectiveId = "missing";
+      },
+    ],
+    [
+      "objective parent",
+      (state: PlannerState) => {
+        state.objectives[0].parentId = "missing";
+      },
+    ],
+    [
+      "development member",
+      (state: PlannerState) => {
+        state.developmentActions[0].memberId = "missing";
+      },
+    ],
+    [
+      "development task",
+      (state: PlannerState) => {
+        state.developmentActions[0].taskId = "missing";
+      },
+    ],
+    [
+      "discipline member",
+      (state: PlannerState) => {
+        state.disciplinePlans[0].memberId = "missing";
+      },
+    ],
+  ])("rejects a missing %s reference", (_description, change) => {
+    const original = linkedState();
+    change(original);
+    expect(() => parsePlannerData(JSON.stringify(original))).toThrow(
+      /references a missing/,
+    );
+  });
+
+  it("accepts intentionally blank links and free-form external meeting participant names", () => {
+    const original = linkedState();
+    original.projects[0].ownerId = "";
+    original.developmentActions[0].memberId = "";
+    original.disciplinePlans[0].memberId = "";
+    original.tasks[0].projectId = "";
+    original.members[0].supervisorId = "";
+    original.meetings[0].participants = [
+      "Someone outside the directory",
+      "External organization",
+    ];
+    expect(parsePlannerData(JSON.stringify(original))).toEqual(original);
+  });
+
+  it.each([
+    [
+      "objective parent",
+      (state: PlannerState) => {
+        state.objectives[0].parentId = "objective-2";
+      },
+    ],
+    [
+      "task dependency",
+      (state: PlannerState) => {
+        state.tasks[1].dependencyIds = ["task-1"];
+      },
+    ],
+    [
+      "self dependency",
+      (state: PlannerState) => {
+        state.tasks[0].dependencyIds = ["task-1"];
+      },
+    ],
+    [
+      "self supervision",
+      (state: PlannerState) => {
+        state.members[0].supervisorId = "member-1";
+      },
+    ],
+  ])("rejects a %s cycle", (_description, change) => {
+    const original = linkedState();
+    change(original);
+    expect(() => parsePlannerData(JSON.stringify(original))).toThrow(
+      /contains a cycle/,
+    );
+  });
+
+  it("supports a long acyclic dependency chain without recursive-stack failure", () => {
+    const original = defaultState();
+    original.tasks = Array.from({ length: 10_000 }, (_, index) => ({
+      id: `task-${index}`,
+      title: `Task ${index}`,
+      date: "",
+      completed: false,
+      priority: "Normal",
+      dependencyIds: index ? [`task-${index - 1}`] : [],
+    }));
+    expect(parsePlannerData(JSON.stringify(original)).tasks).toHaveLength(
+      10_000,
+    );
+    original.tasks[0].dependencyIds = ["task-9999"];
+    expect(() => parsePlannerData(JSON.stringify(original))).toThrow(
+      /contains a cycle/,
+    );
+  });
+});
+
+describe("linked provider mutations", () => {
+  it("keeps completed work while awaiting a prerequisite, then updates linked career and development progress", () => {
+    const original = linkedState();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(original));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.blocks[0].completed = true;
+      }),
+    );
+    expect(result.current.state.blocks[0].completed).toBe(true);
+    expect(result.current.state.tasks[0]).toMatchObject({
+      completed: false,
+      status: "Open",
+    });
+    expect(result.current.state.careerPlans[0].checklist[0].completed).toBe(
+      false,
+    );
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.tasks[1].completed = true;
+      }),
+    );
+    expect(result.current.state.tasks[0]).toMatchObject({
+      completed: true,
+      status: "Done",
+    });
+    expect(result.current.state.careerPlans[0].checklist[0].completed).toBe(
+      true,
+    );
+    expect(result.current.state.developmentActions[0].status).toBe("Complete");
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.careerPlans[0].checklist[0].completed = false;
+      }),
+    );
+    expect(result.current.state.tasks[0].completed).toBe(false);
+    expect(result.current.state.blocks[0].completed).toBe(false);
+    expect(
+      parsePlannerData(localStorage.getItem(STORAGE_KEY)!).developmentActions[0]
+        .status,
+    ).toBe("Planned");
+  });
+
+  it("keeps evaluation checkpoint dates intact through persistence and export", () => {
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.goals.push({
+          id: "evaluation",
+          title: "Evaluation closeout",
+          targetDate: "2027-06-01",
+          category: "Evaluation",
+          progress: 0,
+          source: "Estimate",
+        });
+        for (const [index, date] of [
+          "2027-04-02",
+          "2027-05-02",
+          "2027-06-01",
+        ].entries())
+          draft.events.push({
+            id: `checkpoint-${index}`,
+            title: `Preparation checkpoint ${index}`,
+            date,
+            time: "",
+            category: "Career",
+            recurrence: "None",
+            source: "Estimate",
+            goalId: "evaluation",
+          });
+      }),
+    );
+    expect(
+      parsePlannerData(result.current.exportData()).events.map(
+        (event) => event.date,
+      ),
+    ).toEqual(["2027-04-02", "2027-05-02", "2027-06-01"]);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.goals[0].targetDate = "2027-07-01";
+      }),
+    );
+    expect(
+      parsePlannerData(localStorage.getItem(STORAGE_KEY)!).events.map(
+        (event) => event.date,
+      ),
+    ).toEqual(["2027-04-02", "2027-05-02", "2027-07-01"]);
+  });
+
+  it("keeps linked task and block completion consistent in saved data", () => {
+    const original = linkedState();
+    original.tasks[0].dependencyIds = [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(original));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.tasks[0].completed = true;
+      }),
+    );
+    expect(result.current.state.tasks[0]).toMatchObject({
+      completed: true,
+      status: "Done",
+    });
+    expect(result.current.state.blocks[0].completed).toBe(true);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.blocks[0].completed = false;
+      }),
+    );
+    expect(result.current.state.tasks[0]).toMatchObject({
+      completed: false,
+      status: "Open",
+    });
+    expect(
+      parsePlannerData(localStorage.getItem(STORAGE_KEY)!).tasks[0].completed,
+    ).toBe(false);
+  });
+
+  it("rejects invalid draft links and cycles without losing the saved or current plan", () => {
+    const original = linkedState();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(original));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.objectives[0].parentId = "objective-2";
+      }),
+    );
+    expect(result.current.state).toEqual(original);
+    expect(result.current.storageError).toMatch(/contains a cycle/);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(raw);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.tasks[0].assigneeId = "missing";
+      }),
+    );
+    expect(result.current.state).toEqual(original);
+    expect(result.current.storageError).toMatch(/references a missing/);
+    act(() =>
+      result.current.mutate((draft) => {
+        draft.profile.name = "Valid change";
+      }),
+    );
+    expect(result.current.storageError).toBeNull();
+    expect(
+      parsePlannerData(localStorage.getItem(STORAGE_KEY)!).profile.name,
+    ).toBe("Valid change");
+  });
+
+  it("uses deletion cleanup to preserve work and captures while detaching removed references", () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(linkedState()));
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    act(() =>
+      result.current.mutate((draft) => {
+        removePlannerRecord(draft, "projects", "project-1");
+      }),
+    );
+    expect(result.current.state.projects).toEqual([]);
+    expect(result.current.state.tasks[0].projectId).toBeUndefined();
+    expect(result.current.state.captures[0].projectId).toBeUndefined();
+    expect(result.current.state.captures[0].title).toBe("Improved process");
+    expect(result.current.state.captures[0].date).toBe("2026-10-08");
+    expect(
+      parsePlannerData(localStorage.getItem(STORAGE_KEY)!).captures[0].evidence,
+    ).toBe("Training log");
+  });
+
+  it("does not lose sequential mutations made before React renders", () => {
+    const { result } = renderHook(() => usePlanner(), { wrapper });
+    act(() => {
+      result.current.mutate((draft) => {
+        draft.profile.name = "First change";
+      });
+      result.current.mutate((draft) => {
+        draft.profile.rank = "A1C";
+      });
+    });
+    expect(result.current.state.profile).toMatchObject({
+      name: "First change",
+      rank: "A1C",
+    });
   });
 });

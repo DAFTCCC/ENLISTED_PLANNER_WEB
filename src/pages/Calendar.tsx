@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 import { usePlanner } from "../lib/planner";
 import { addDays, formatDate, localDate, occursOn } from "../lib/dates";
-import type { CalendarEvent } from "../lib/types";
+import type { CalendarEvent, Page } from "../lib/types";
+import {
+  eventSourcePage,
+  linkedAgenda,
+  sourceManagesEventDate,
+} from "../lib/calendar-agenda";
+import { taskCompletionError } from "../lib/workflow";
 import "./calendar.css";
 
 type EventDraft = Omit<CalendarEvent, "id"> & { id?: string };
@@ -29,6 +35,8 @@ const recurrences: CalendarEvent["recurrence"][] = [
   "None",
   "Weekly",
   "Monthly",
+  "Quarterly",
+  "Yearly",
 ];
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const monthStart = (date: string) => `${date.slice(0, 7)}-01`;
@@ -49,8 +57,10 @@ function timeLabel(time: string) {
 
 export default function Calendar({
   onOpenDay,
+  onNavigate,
 }: {
   onOpenDay: (date: string) => void;
+  onNavigate?: (page: Page) => void;
 }) {
   const { state, mutate } = usePlanner();
   const today = localDate();
@@ -59,6 +69,7 @@ export default function Calendar({
   const [draft, setDraft] = useState<EventDraft | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const dialogRef = useRef<HTMLDivElement>(null);
   const dialogOpen = draft !== null || deleteTarget !== null;
 
@@ -120,8 +131,11 @@ export default function Calendar({
     (task) => task.date === selectedDate,
   );
   const selectedGoals = state.goals.filter(
-    (goal) => goal.targetDate === selectedDate,
+    (goal) =>
+      goal.targetDate === selectedDate &&
+      !selectedEvents.some((event) => event.goalId === goal.id),
   );
+  const selectedLinked = linkedAgenda(state, selectedDate);
   const upcomingGoals = state.goals
     .filter(
       (goal) =>
@@ -133,7 +147,8 @@ export default function Calendar({
     selectedEvents.length +
       selectedBlocks.length +
       selectedTasks.length +
-      selectedGoals.length >
+      selectedGoals.length +
+      selectedLinked.length >
     0;
 
   function openEditor(event?: CalendarEvent) {
@@ -155,6 +170,17 @@ export default function Calendar({
   function saveEvent(event: FormEvent) {
     event.preventDefault();
     if (!draft) return;
+    const existingEvent = state.events.find((event) => event.id === draft.id);
+    if (
+      existingEvent &&
+      sourceManagesEventDate(existingEvent, state) &&
+      draft.date !== existingEvent.date
+    ) {
+      setError(
+        "This date follows its source plan. Change it in Career, Leadership, or Projects & taskers first.",
+      );
+      return;
+    }
     if (!draft.title.trim() || !draft.date) {
       setError("Enter an event name and date.");
       return;
@@ -200,6 +226,18 @@ export default function Calendar({
           <Plus size={18} /> Add event
         </button>
       </div>
+      {notice && (
+        <p className="notice" role="status">
+          {notice}
+          <button
+            className="icon-button"
+            aria-label="Dismiss message"
+            onClick={() => setNotice("")}
+          >
+            <X size={15} />
+          </button>
+        </p>
+      )}
 
       <div className="calendar-layout">
         <section className="panel month-panel" aria-label="Monthly calendar">
@@ -258,8 +296,11 @@ export default function Calendar({
                 (task) => task.date === date && !task.completed,
               ).length;
               const goalCount = state.goals.filter(
-                (goal) => goal.targetDate === date,
+                (goal) =>
+                  goal.targetDate === date &&
+                  !events.some((event) => event.goalId === goal.id),
               ).length;
+              const linkedCount = linkedAgenda(state, date).length;
               const isOutside = date.slice(0, 7) !== month.slice(0, 7);
               const counts = [
                 events.length
@@ -273,6 +314,9 @@ export default function Calendar({
                   : "",
                 goalCount
                   ? `${goalCount} goal target${goalCount === 1 ? "" : "s"}`
+                  : "",
+                linkedCount
+                  ? `${linkedCount} connected deadline${linkedCount === 1 ? "" : "s"}`
                   : "",
               ]
                 .filter(Boolean)
@@ -319,10 +363,10 @@ export default function Calendar({
                           <span className="calendar-count-word"> due</span>
                         </span>
                       )}
-                      {goalCount > 0 && (
+                      {goalCount + linkedCount > 0 && (
                         <span className="calendar-mini-count goal-count">
                           <Target size={11} />
-                          {goalCount}
+                          {goalCount + linkedCount}
                         </span>
                       )}
                     </span>
@@ -420,13 +464,28 @@ export default function Calendar({
                       </div>
                     </div>
                     <div className="agenda-actions">
-                      <button
-                        className="icon-button"
-                        aria-label={`Edit ${event.title}`}
-                        onClick={() => openEditor(event)}
-                      >
-                        <Pencil size={14} />
-                      </button>
+                      {eventSourcePage(event) && (
+                        <button
+                          className="icon-button"
+                          aria-label={`Open source for ${event.title}`}
+                          onClick={() =>
+                            onNavigate
+                              ? onNavigate(eventSourcePage(event)!)
+                              : (window.location.hash = eventSourcePage(event)!)
+                          }
+                        >
+                          <ArrowUpRight size={14} />
+                        </button>
+                      )}
+                      {!sourceManagesEventDate(event, state) && (
+                        <button
+                          className="icon-button"
+                          aria-label={`Edit ${event.title}`}
+                          onClick={() => openEditor(event)}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      )}
                       <button
                         className="icon-button"
                         aria-label={`Delete ${event.title}`}
@@ -493,14 +552,19 @@ export default function Calendar({
                     <input
                       type="checkbox"
                       checked={task.completed}
-                      onChange={() =>
+                      onChange={() => {
+                        const issue = taskCompletionError(task, state.tasks);
+                        if (!task.completed && issue) {
+                          setNotice(issue);
+                          return;
+                        }
                         mutate((data) => {
                           const item = data.tasks.find(
                             (item) => item.id === task.id,
                           );
                           if (item) item.completed = !item.completed;
-                        })
-                      }
+                        });
+                      }}
                     />
                     <span>{task.title}</span>
                     {task.priority === "High" && (
@@ -523,10 +587,39 @@ export default function Calendar({
                     <div>
                       <h4>{goal.title}</h4>
                       <p className="muted small">
-                        User-set target · {goal.progress}% complete
+                        {goal.source === "Estimate"
+                          ? "Estimated planning target"
+                          : "User-set target"}{" "}
+                        · {goal.progress}% complete
                       </p>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+            {selectedLinked.length > 0 && (
+              <div className="agenda-section">
+                <div className="agenda-section-title">
+                  <h3>Connected plans</h3>
+                  <span>{selectedLinked.length}</span>
+                </div>
+                {selectedLinked.map((item) => (
+                  <button
+                    className="agenda-source-plan"
+                    key={item.id}
+                    onClick={() =>
+                      onNavigate
+                        ? onNavigate(item.page)
+                        : (window.location.hash = item.page)
+                    }
+                  >
+                    <Target size={16} />
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.detail}</small>
+                    </span>
+                    <ArrowUpRight size={14} />
+                  </button>
                 ))}
               </div>
             )}
@@ -560,7 +653,11 @@ export default function Calendar({
                       />
                       <span>{goal.progress}%</span>
                     </div>
-                    <span className="muted small">User-set target</span>
+                    <span className="muted small">
+                      {goal.source === "Estimate"
+                        ? "Estimated planning target"
+                        : "User-set target"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -633,6 +730,14 @@ export default function Calendar({
                     Date
                     <input
                       type="date"
+                      readOnly={Boolean(
+                        draft.id &&
+                        state.events.some(
+                          (event) =>
+                            event.id === draft.id &&
+                            sourceManagesEventDate(event, state),
+                        ),
+                      )}
                       min="0001-01-01"
                       max="9999-12-31"
                       value={draft.date}

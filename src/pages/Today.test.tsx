@@ -85,6 +85,75 @@ afterEach(() => {
 });
 
 describe("daily planning workflow", () => {
+  it("schedules an imported fractional effort estimate as a linked quarter-hour block", () => {
+    const state = defaultState();
+    state.tasks = [
+      {
+        id: "task-fraction",
+        title: "Review package",
+        date: day,
+        completed: false,
+        priority: "Normal",
+        estimatedMinutes: 22.5,
+      },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    renderDay();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Schedule priority Review package" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(
+      (within(dialog).getByLabelText("End time") as HTMLInputElement).value,
+    ).toBe("09:30");
+    save(dialog);
+    expect(persisted().blocks[0].taskId).toBe("task-fraction");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete Review package" }),
+    );
+    expect(persisted().tasks[0].completed).toBe(true);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Record result for Review package" }),
+    );
+    expect(persisted().captures[0].taskId).toBe("task-fraction");
+    expect(persisted().captures[0].outcome).toBe("");
+  });
+
+  it("explains incomplete prerequisites before allowing tasker completion", () => {
+    const state = defaultState();
+    state.tasks = [
+      {
+        id: "submit",
+        title: "Submit package",
+        date: day,
+        completed: false,
+        priority: "High",
+        dependencyIds: ["review"],
+      },
+      {
+        id: "review",
+        title: "Review records",
+        date: day,
+        completed: false,
+        priority: "Normal",
+      },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    renderDay();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete priority Submit package" }),
+    );
+    expect(screen.getByRole("status").textContent).toContain("Review records");
+    expect(persisted().tasks[0].completed).toBe(false);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete priority Review records" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Complete priority Submit package" }),
+    );
+    expect(persisted().tasks.every((task) => task.completed)).toBe(true);
+  });
+
   it("adds, edits, completes, reopens and restores a time block from saved data", () => {
     const firstRender = renderDay();
     let dialog = openNew("  Study for qualification  ");

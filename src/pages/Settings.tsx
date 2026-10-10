@@ -567,6 +567,30 @@ export default function Settings() {
                 {pending.state.habits.length + pending.state.members.length}
               </dd>
             </div>
+            <div>
+              <dt>Projects, priorities & taskers</dt>
+              <dd>
+                {pending.state.projects.length +
+                  pending.state.objectives.length +
+                  pending.state.tasks.length}
+              </dd>
+            </div>
+            <div>
+              <dt>Contacts & development plans</dt>
+              <dd>
+                {pending.state.contacts.length +
+                  pending.state.developmentActions.length +
+                  pending.state.disciplinePlans.length}
+              </dd>
+            </div>
+            <div>
+              <dt>Meetings, rhythms & career plans</dt>
+              <dd>
+                {pending.state.meetings.length +
+                  pending.state.battleRhythms.length +
+                  pending.state.careerPlans.length}
+              </dd>
+            </div>
           </dl>
           <p className="small muted">
             Export your current plan first if you want to keep it. This
@@ -590,8 +614,9 @@ export default function Settings() {
         >
           <p>
             This will remove your profile, time blocks, tasks, calendar events,
-            captures, goals, leadership records, and tool inputs from this
-            browser.
+            captures, goals, projects, priorities, contacts, development and
+            discipline preparation plans, meetings, battle rhythms, career
+            plans, leadership records, and tool inputs from this browser.
           </p>
           <p className="small muted">
             Export a backup first if you want to keep your work. This action

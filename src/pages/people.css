@@ -1,0 +1,175 @@
+.people-member-connections {
+  margin-top: 14px;
+}
+.people-member-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--muted, #738095);
+}
+.people-member-meta > span,
+.people-member-meta > a {
+  background: var(--surface-subtle, #f3f5f3);
+  border-radius: 5px;
+  padding: 3px 7px;
+}
+.people-member-meta a {
+  color: var(--accent, #2c7e60);
+}
+.people-assigned-work {
+  margin-top: 14px;
+  font-size: 0.8rem;
+}
+.people-assigned-work > summary {
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.people-assigned-task {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+}
+.people-assigned-task input {
+  margin-top: 3px;
+  accent-color: var(--accent, #2c7e60);
+}
+.people-assigned-task > span {
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.people-assigned-task strong {
+  font-size: 0.79rem;
+  font-weight: 500;
+}
+.people-owned-project {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  line-height: 1.6;
+}
+.people-owned-project > a {
+  font-weight: 600;
+  color: var(--accent, #2c7e60);
+}
+.people-development {
+  border-top: 1px solid var(--border, #dedfd9);
+  padding-top: 30px;
+}
+.people-development-heading {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  justify-content: space-between;
+}
+.people-development-heading h2 {
+  margin: 7px 0 0;
+}
+.people-development-heading .field {
+  min-width: 190px;
+}
+.people-section-heading {
+  margin-bottom: 16px;
+  align-items: center;
+}
+.people-section-heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.04rem;
+}
+.people-filter {
+  max-width: 230px;
+  margin: 0 0 18px;
+}
+.people-action h4,
+.people-plan h4 {
+  margin: 16px 0 6px;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+.people-action > p,
+.people-plan > p {
+  margin-top: 6px;
+}
+.people-record-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.people-linked-record {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin: 16px 0;
+}
+.people-linked-record a {
+  color: var(--accent, #2c7e60);
+  text-decoration: underline;
+}
+.people-status-field {
+  margin: 18px 0 10px;
+}
+.people-discipline-limit {
+  margin: 0 0 16px;
+}
+.people-consultation-prompts {
+  padding: 16px 18px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #dedfd9);
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+.people-consultation-prompts summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.people-consultation-prompts ul {
+  padding-left: 20px;
+  font-size: 0.8rem;
+  line-height: 1.8;
+}
+.people-plan-summary {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+  font-size: 0.81rem;
+  line-height: 1.6;
+}
+.people-plan-summary dt {
+  font-size: 0.72rem;
+  color: var(--muted, #738095);
+  margin-bottom: 3px;
+}
+.people-plan-summary dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.people-plan-notes {
+  margin: 16px 0;
+  font-size: 0.79rem;
+}
+.people-plan-notes summary {
+  cursor: pointer;
+}
+.people-plan-statuses {
+  margin-top: 18px;
+}
+@media (max-width: 640px) {
+  .people-development-heading,
+  .people-section-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+  .people-development-heading .field {
+    width: 100%;
+  }
+}

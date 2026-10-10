@@ -3,7 +3,9 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Download,
   FileText,
+  Link2,
   Plus,
   Search,
   Sparkles,
@@ -12,10 +14,23 @@ import {
 } from "lucide-react";
 import { usePlanner } from "../lib/planner";
 import { formatDate, localDate } from "../lib/dates";
-import type { Capture } from "../lib/types";
+import type {
+  AirmanLeadershipQuality,
+  Capture,
+  MajorGradedArea,
+} from "../lib/types";
+import {
+  ALQ_BY_MGA,
+  buildPortfolioText,
+  getCaptureObjectiveIds,
+  getCapturePrompts,
+  getObjectivePath,
+  MAJOR_GRADED_AREAS,
+} from "../lib/alignment";
 import ProfessionalDialog from "./ProfessionalDialog";
 import { isProfessionalDate } from "./professional-date";
 import "./professional.css";
+import "./strategy.css";
 
 const categories: Capture["category"][] = [
   "Mission",
@@ -26,22 +41,44 @@ const categories: Capture["category"][] = [
 const isDetailed = (capture: Capture) =>
   Boolean(
     capture.context.trim() ||
-      capture.actions.trim() ||
-      capture.outcome.trim() ||
-      capture.lessons.trim() ||
-      capture.tags.length,
+    capture.actions.trim() ||
+    capture.outcome.trim() ||
+    capture.lessons.trim() ||
+    capture.tags.length ||
+    capture.impact?.trim() ||
+    capture.evidence?.trim() ||
+    capture.mga ||
+    capture.alq ||
+    capture.projectId ||
+    capture.taskId ||
+    capture.objectiveId ||
+    capture.memberIds?.length,
   );
 function CaptureDetails({ capture }: { capture: Capture }) {
-  const { mutate } = usePlanner();
+  const { state, mutate, storageError } = usePlanner();
   const [tagDraft, setTagDraft] = useState(capture.tags.join(", "));
   const update = (
-    key: "context" | "actions" | "outcome" | "lessons" | "category",
+    key:
+      | "context"
+      | "actions"
+      | "outcome"
+      | "lessons"
+      | "category"
+      | "impact"
+      | "evidence"
+      | "mga"
+      | "alq"
+      | "projectId"
+      | "taskId"
+      | "objectiveId",
     value: string,
   ) =>
     mutate((next) => {
       const current = next.captures.find((item) => item.id === capture.id);
       if (current) Object.assign(current, { [key]: value });
     });
+  const prompts = getCapturePrompts(capture);
+  const alignment = getCaptureObjectiveIds(capture, state);
   return (
     <div
       className="professional-capture-details"
@@ -51,11 +88,12 @@ function CaptureDetails({ capture }: { capture: Capture }) {
         <div>
           <h3>Build your career record</h3>
           <p className="small muted">
-            Add the details that will help you tell the story later.
+            Use Action, Impact, and Result to keep the work and its value clear.
+            Your original note and date are preserved.
           </p>
         </div>
         <span className="small professional-icon muted">
-          <Check size={14} /> Auto-saved
+          <Check size={14} /> {storageError ? "Session changes" : "Auto-saved"}
         </span>
       </div>
       <label className="field">
@@ -71,6 +109,54 @@ function CaptureDetails({ capture }: { capture: Capture }) {
       </label>
       <div className="form-grid">
         <label className="field">
+          Major Graded Area
+          <select
+            value={capture.mga || ""}
+            onChange={(event) =>
+              mutate((next) => {
+                const current = next.captures.find(
+                  (item) => item.id === capture.id,
+                );
+                if (!current) return;
+                const mga = event.target.value as MajorGradedArea | "";
+                current.mga = mga;
+                if (
+                  current.alq &&
+                  (!mga || !ALQ_BY_MGA[mga].includes(current.alq))
+                )
+                  current.alq = "";
+              })
+            }
+          >
+            <option value="">Uncategorized / review later</option>
+            {MAJOR_GRADED_AREAS.map((mga) => (
+              <option key={mga}>{mga}</option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          Airman Leadership Quality
+          <select
+            aria-label="Airman Leadership Quality"
+            value={capture.alq || ""}
+            onChange={(event) =>
+              update("alq", event.target.value as AirmanLeadershipQuality)
+            }
+            disabled={!capture.mga}
+          >
+            <option value="">Choose a supported quality</option>
+            {capture.mga &&
+              ALQ_BY_MGA[capture.mga].map((alq) => (
+                <option key={alq}>{alq}</option>
+              ))}
+          </select>
+          <span className="small muted">
+            Choose the area first, then a quality demonstrated by this work.
+          </span>
+        </label>
+      </div>
+      <div className="form-grid">
+        <label className="field">
           Background &amp; context
           <textarea
             value={capture.context}
@@ -80,8 +166,12 @@ function CaptureDetails({ capture }: { capture: Capture }) {
           />
         </label>
         <label className="field">
+          <span className="capture-air-key" aria-hidden="true">
+            A · Action — what you did
+          </span>
           Your actions
           <textarea
+            aria-label="Your actions"
             value={capture.actions}
             onChange={(event) => update("actions", event.target.value)}
             placeholder="What did you do? Who did you lead or support?"
@@ -91,11 +181,35 @@ function CaptureDetails({ capture }: { capture: Capture }) {
       </div>
       <div className="form-grid">
         <label className="field">
+          Impact — how you did it
+          <textarea
+            value={capture.impact || ""}
+            onChange={(event) => update("impact", event.target.value)}
+            placeholder="How did you carry out the work? Describe scope, effort, or who benefited, using verified details."
+            maxLength={10000}
+          />
+        </label>
+        <label className="field">
+          <span className="capture-air-key" aria-hidden="true">
+            R · Result — why it matters
+          </span>
           Outcomes &amp; impact
           <textarea
+            aria-label="Outcomes & impact"
             value={capture.outcome}
             onChange={(event) => update("outcome", event.target.value)}
-            placeholder="What changed? Include useful numbers, scope, and mission impact."
+            placeholder="What changed and why was it important? Record verified outcomes; keep implementation impact in its separate field."
+            maxLength={10000}
+          />
+        </label>
+      </div>
+      <div className="form-grid">
+        <label className="field">
+          Evidence &amp; source
+          <textarea
+            value={capture.evidence || ""}
+            onChange={(event) => update("evidence", event.target.value)}
+            placeholder="A measurement, source title, reference location, or verification date supporting the result. Enter only appropriate information."
             maxLength={10000}
           />
         </label>
@@ -140,7 +254,324 @@ function CaptureDetails({ capture }: { capture: Capture }) {
           attached to this record.
         </span>
       </div>
+      <section
+        className="capture-connections"
+        aria-labelledby={`capture-connections-${capture.id}`}
+      >
+        <h4 id={`capture-connections-${capture.id}`}>
+          <Link2 size={16} />
+          Connect this accomplishment
+        </h4>
+        <div className="form-grid">
+          <label className="field">
+            Linked project
+            <select
+              value={capture.projectId || ""}
+              onChange={(event) => update("projectId", event.target.value)}
+            >
+              <option value="">No project</option>
+              {state.projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Linked task or milestone
+            <select
+              value={capture.taskId || ""}
+              onChange={(event) => update("taskId", event.target.value)}
+            >
+              <option value="">No task</option>
+              {state.tasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <label className="field">
+          Direct strategic objective
+          <select
+            value={capture.objectiveId || ""}
+            onChange={(event) => update("objectiveId", event.target.value)}
+          >
+            <option value="">No direct objective</option>
+            {state.objectives.map((objective) => (
+              <option key={objective.id} value={objective.id}>
+                {objective.level}: {objective.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        {state.members.length > 0 ? (
+          <fieldset className="capture-members">
+            <legend>People involved (optional)</legend>
+            {state.members.map((member) => (
+              <label key={member.id}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(capture.memberIds?.includes(member.id))}
+                  onChange={(event) =>
+                    mutate((next) => {
+                      const current = next.captures.find(
+                        (item) => item.id === capture.id,
+                      );
+                      if (!current) return;
+                      const ids = new Set(current.memberIds || []);
+                      if (event.target.checked) ids.add(member.id);
+                      else ids.delete(member.id);
+                      current.memberIds = [...ids];
+                    })
+                  }
+                />
+                {[member.rank, member.name].filter(Boolean).join(" ")}
+              </label>
+            ))}
+          </fieldset>
+        ) : (
+          <p className="small muted">
+            Add teammates in Leadership to connect people involved.
+          </p>
+        )}
+        {alignment.length > 0 && (
+          <div className="capture-alignment">
+            <strong>Mission traceability</strong>
+            <p className="small muted">
+              From your direct objective and the objectives of linked work:
+            </p>
+            <ul>
+              {alignment.map((id) => (
+                <li key={id}>
+                  {getObjectivePath(state.objectives, id)
+                    .map(
+                      (objective) => `${objective.level}: ${objective.title}`,
+                    )
+                    .join(" → ")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+      <section
+        className="capture-prompts"
+        aria-labelledby={`capture-review-${capture.id}`}
+      >
+        <h4 id={`capture-review-${capture.id}`}>Record review</h4>
+        {prompts.length ? (
+          <>
+            <p className="small muted">
+              These prompts are based on empty fields or a category mismatch.
+              They do not judge the quality of your performance.
+            </p>
+            <ul>
+              {prompts.map((prompt) => (
+                <li key={prompt.key}>{prompt.message}</li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="small muted">
+            The AIR, evidence, and classification fields are filled. Review
+            accuracy and source support before using this record.
+          </p>
+        )}
+      </section>
     </div>
+  );
+}
+
+function CapturePortfolio({ onClose }: { onClose: () => void }) {
+  const { state } = usePlanner();
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [category, setCategory] = useState("All categories");
+  const [mga, setMga] = useState("All areas");
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [notice, setNotice] = useState("");
+  const invalidRange = Boolean(from && to && from > to);
+  const candidates = state.captures
+    .filter(
+      (capture) =>
+        (!from || capture.date >= from) &&
+        (!to || capture.date <= to) &&
+        (category === "All categories" || capture.category === category) &&
+        (mga === "All areas" ||
+          (mga === "Uncategorized" ? !capture.mga : capture.mga === mga)),
+    )
+    .sort((left, right) => left.date.localeCompare(right.date));
+  const selected = candidates.filter((capture) => !excluded.has(capture.id));
+  const text = buildPortfolioText(selected, state);
+  function download() {
+    if (invalidRange || !selected.length) return;
+    const url = URL.createObjectURL(
+      new Blob([text], { type: "text/plain;charset=utf-8" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `enlisted-planner-portfolio-${localDate()}.txt`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setNotice("Portfolio text download started.");
+  }
+  return (
+    <ProfessionalDialog
+      title="Build an accomplishment portfolio"
+      onClose={onClose}
+    >
+      <div className="capture-portfolio">
+        <p className="small muted">
+          Choose your review period and records. The text groups your actual
+          inputs by Major Graded Area; it does not generate or embellish a
+          performance statement.
+        </p>
+        <div className="form-grid">
+          <label className="field">
+            Portfolio start date
+            <input
+              type="date"
+              min="0001-01-01"
+              max="9999-12-31"
+              value={from}
+              onChange={(event) => {
+                if (isProfessionalDate(event.target.value, true))
+                  setFrom(event.target.value);
+              }}
+            />
+          </label>
+          <label className="field">
+            Portfolio end date
+            <input
+              type="date"
+              min="0001-01-01"
+              max="9999-12-31"
+              value={to}
+              onChange={(event) => {
+                if (isProfessionalDate(event.target.value, true))
+                  setTo(event.target.value);
+              }}
+            />
+          </label>
+        </div>
+        <div className="form-grid">
+          <label className="field">
+            Portfolio category
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            >
+              <option>All categories</option>
+              {categories.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Portfolio Major Graded Area
+            <select
+              value={mga}
+              onChange={(event) => setMga(event.target.value)}
+            >
+              <option>All areas</option>
+              {MAJOR_GRADED_AREAS.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+              <option>Uncategorized</option>
+            </select>
+          </label>
+        </div>
+        {invalidRange && (
+          <p className="error-text small" role="alert">
+            The end date must be on or after the start date.
+          </p>
+        )}
+        <div className="professional-heading-row">
+          <h3>
+            Select records ({selected.length} / {candidates.length})
+          </h3>
+          <div className="professional-actions">
+            <button
+              type="button"
+              className="button ghost small"
+              onClick={() => setExcluded(new Set())}
+            >
+              Select all
+            </button>
+            <button
+              type="button"
+              className="button ghost small"
+              onClick={() =>
+                setExcluded(
+                  new Set([
+                    ...excluded,
+                    ...candidates.map((capture) => capture.id),
+                  ]),
+                )
+              }
+            >
+              Clear selection
+            </button>
+          </div>
+        </div>
+        <div className="portfolio-records">
+          {candidates.length ? (
+            candidates.map((capture) => (
+              <label key={capture.id}>
+                <input
+                  type="checkbox"
+                  checked={!excluded.has(capture.id)}
+                  onChange={(event) =>
+                    setExcluded((current) => {
+                      const next = new Set(current);
+                      if (event.target.checked) next.delete(capture.id);
+                      else next.add(capture.id);
+                      return next;
+                    })
+                  }
+                />
+                <span>
+                  <strong>{capture.title}</strong>
+                  <span className="small muted">
+                    {formatDate(capture.date)} ·{" "}
+                    {capture.mga || "Uncategorized"}
+                  </span>
+                </span>
+              </label>
+            ))
+          ) : (
+            <p className="small muted">No records match these filters.</p>
+          )}
+        </div>
+        <details className="portfolio-preview">
+          <summary>Preview portfolio text</summary>
+          <pre aria-label="Portfolio text preview">{text}</pre>
+        </details>
+        {notice && (
+          <p className="small muted" role="status">
+            {notice}
+          </p>
+        )}
+        <div className="modal-actions">
+          <button type="button" className="button secondary" onClick={onClose}>
+            Close
+          </button>
+          <button
+            type="button"
+            className="button primary"
+            disabled={invalidRange || !selected.length}
+            onClick={download}
+          >
+            <Download size={16} />
+            Download portfolio text
+          </button>
+        </div>
+      </div>
+    </ProfessionalDialog>
   );
 }
 
@@ -156,6 +587,7 @@ export default function Captures() {
   const [deleting, setDeleting] = useState<Capture | null>(null);
   const [saved, setSaved] = useState(false);
   const [dateError, setDateError] = useState("");
+  const [portfolioOpen, setPortfolioOpen] = useState(false);
   const detailedCount = state.captures.filter(isDetailed).length;
   const captures = useMemo(
     () =>
@@ -166,6 +598,10 @@ export default function Captures() {
             capture.context,
             capture.actions,
             capture.outcome,
+            capture.impact || "",
+            capture.evidence || "",
+            capture.mga || "",
+            capture.alq || "",
             capture.lessons,
             ...capture.tags,
           ]
@@ -225,10 +661,20 @@ export default function Captures() {
           <h1>Quick capture</h1>
           <p>A few words now. A stronger career story later.</p>
         </div>
-        <span className="badge">
-          {state.captures.length}{" "}
-          {state.captures.length === 1 ? "capture" : "captures"}
-        </span>
+        <div className="professional-actions">
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => setPortfolioOpen(true)}
+          >
+            <FileText size={17} />
+            Build portfolio
+          </button>
+          <span className="badge">
+            {state.captures.length}{" "}
+            {state.captures.length === 1 ? "capture" : "captures"}
+          </span>
+        </div>
       </div>
       <section className="panel">
         <div className="panel-heading">
@@ -387,6 +833,8 @@ export default function Captures() {
                 <div className="professional-meta">
                   <span>{formatDate(item.date)}</span>
                   <span>Original capture</span>
+                  {item.mga && <span>{item.mga}</span>}
+                  {item.alq && <span>{item.alq}</span>}
                 </div>
                 {!expanded.has(item.id) &&
                   (item.outcome || item.actions || item.context) && (
@@ -489,6 +937,9 @@ export default function Captures() {
             </button>
           </div>
         </ProfessionalDialog>
+      )}
+      {portfolioOpen && (
+        <CapturePortfolio onClose={() => setPortfolioOpen(false)} />
       )}
     </div>
   );

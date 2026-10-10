@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { lazy, Suspense, useEffect, useState, type FormEvent } from "react";
 import {
   CalendarDays,
   Compass,
@@ -17,6 +17,9 @@ import {
   WifiOff,
   Download,
   CheckCircle2,
+  BriefcaseBusiness,
+  Target,
+  HandHeart,
 } from "lucide-react";
 import { usePlanner } from "./lib/planner";
 import { localDate } from "./lib/dates";
@@ -30,14 +33,20 @@ import Leadership from "./pages/Leadership";
 import Tools from "./pages/Tools";
 import Settings from "./pages/Settings";
 import DialogAccessibility from "./components/DialogAccessibility";
+const Work = lazy(() => import("./pages/Work"));
+const Strategy = lazy(() => import("./pages/Strategy"));
+const Support = lazy(() => import("./pages/Support"));
 
 const nav = [
   { page: "today", label: "Day plan", icon: Compass },
   { page: "calendar", label: "Calendar", icon: CalendarDays },
+  { page: "work", label: "Projects & taskers", icon: BriefcaseBusiness },
+  { page: "strategy", label: "Mission & priorities", icon: Target },
   { page: "career", label: "Career progress", icon: Mountain },
   { page: "captures", label: "Career records", icon: NotebookPen },
   { page: "readiness", label: "Personal readiness", icon: HeartPulse },
   { page: "leadership", label: "Leadership", icon: Users },
+  { page: "support", label: "Helping Hands", icon: HandHeart },
   { page: "tools", label: "Tools", icon: Wrench },
 ] as const;
 const pages: Page[] = [...nav.map((item) => item.page), "settings"];
@@ -50,6 +59,7 @@ export default function App() {
   const { state, mutate, storageError } = usePlanner();
   const [page, setPage] = useState<Page>(currentPage);
   const [day, setDay] = useState(localDate());
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [mobileNav, setMobileNav] = useState(false);
   const [online, setOnline] = useState(navigator.onLine);
   const [welcomeStep, setWelcomeStep] = useState(0);
@@ -158,7 +168,7 @@ export default function App() {
           {nav.map((item, index) => (
             <div key={item.page}>
               {index === 4 && (
-                <p className="nav-heading second">GROW BEYOND THE MISSION</p>
+                <p className="nav-heading second">CAREER & PEOPLE</p>
               )}
               <button
                 className={`nav-item ${page === item.page ? "active" : ""}`}
@@ -261,28 +271,51 @@ export default function App() {
           </div>
         )}
         <main id="main-content" tabIndex={-1}>
-          {page === "today" && (
-            <Today
-              date={day}
-              setDate={setDay}
-              onCalendar={() => go("calendar")}
-              onCaptures={() => go("captures")}
-            />
-          )}
-          {page === "calendar" && (
-            <Calendar
-              onOpenDay={(date) => {
-                setDay(date);
-                go("today");
-              }}
-            />
-          )}
-          {page === "career" && <Career />}
-          {page === "captures" && <Captures />}
-          {page === "readiness" && <Readiness />}
-          {page === "leadership" && <Leadership />}
-          {page === "tools" && <Tools />}
-          {page === "settings" && <Settings />}
+          <Suspense
+            fallback={
+              <div className="panel" role="status">
+                Opening your planner…
+              </div>
+            }
+          >
+            {page === "today" && (
+              <Today
+                date={day}
+                setDate={setDay}
+                onCalendar={() => go("calendar")}
+                onCaptures={() => go("captures")}
+                onNavigate={go}
+                pendingTaskId={pendingTaskId}
+                onTaskOpened={() => setPendingTaskId(null)}
+              />
+            )}
+            {page === "calendar" && (
+              <Calendar
+                onNavigate={go}
+                onOpenDay={(date) => {
+                  setDay(date);
+                  go("today");
+                }}
+              />
+            )}
+            {page === "career" && <Career />}
+            {page === "work" && (
+              <Work
+                onOpenDay={(date, taskId) => {
+                  setDay(date);
+                  setPendingTaskId(taskId ?? null);
+                  go("today");
+                }}
+              />
+            )}
+            {page === "strategy" && <Strategy />}
+            {page === "support" && <Support />}
+            {page === "captures" && <Captures />}
+            {page === "readiness" && <Readiness />}
+            {page === "leadership" && <Leadership />}
+            {page === "tools" && <Tools />}
+            {page === "settings" && <Settings />}
+          </Suspense>
         </main>
         <footer className="app-footer">
           <span>ONE AIRMAN. ONE PLANNER. AN ENTIRE CAREER.</span>

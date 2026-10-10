@@ -163,4 +163,20 @@ describe("event recurrence", () => {
     expect(occursOn(event("2026-02-30", "Monthly"), "2026-03-02")).toBe(false);
     expect(occursOn(event("2026-01-31", "Monthly"), "2026-04-31")).toBe(false);
   });
+
+  it("repeats quarterly across years and skips nonexistent anchor days", () => {
+    const quarterly = event("2026-01-31", "Quarterly");
+    expect(occursOn(quarterly, "2026-04-30")).toBe(false);
+    expect(occursOn(quarterly, "2026-07-31")).toBe(true);
+    expect(occursOn(quarterly, "2026-08-31")).toBe(false);
+    expect(occursOn(quarterly, "2027-01-31")).toBe(true);
+    expect(occursOn(quarterly, "2025-10-31")).toBe(false);
+  });
+
+  it("repeats yearly without moving leap-day anchors", () => {
+    const yearly = event("2024-02-29", "Yearly");
+    expect(occursOn(yearly, "2025-02-28")).toBe(false);
+    expect(occursOn(yearly, "2028-02-29")).toBe(true);
+    expect(occursOn(yearly, "2028-03-29")).toBe(false);
+  });
 });

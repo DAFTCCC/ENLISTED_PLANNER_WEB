@@ -87,7 +87,7 @@ export function timeString(value: number): string {
   return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 }
 
-/** Recurrences begin at the event's anchor; missing monthly dates are skipped. */
+/** Recurrences begin at the event's anchor; missing calendar dates are skipped. */
 export function occursOn(event: CalendarEvent, value: string): boolean {
   const anchor = parseDate(event.date);
   const date = parseDate(value);
@@ -99,6 +99,20 @@ export function occursOn(event: CalendarEvent, value: string): boolean {
       return (date.getTime() - anchor.getTime()) % (7 * DAY_MS) === 0;
     case "Monthly":
       return date.getUTCDate() === anchor.getUTCDate();
+    case "Quarterly":
+      return (
+        date.getUTCDate() === anchor.getUTCDate() &&
+        ((date.getUTCFullYear() - anchor.getUTCFullYear()) * 12 +
+          date.getUTCMonth() -
+          anchor.getUTCMonth()) %
+          3 ===
+          0
+      );
+    case "Yearly":
+      return (
+        date.getUTCMonth() === anchor.getUTCMonth() &&
+        date.getUTCDate() === anchor.getUTCDate()
+      );
     default:
       return false;
   }

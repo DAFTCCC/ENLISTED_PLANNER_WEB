@@ -16,6 +16,10 @@ import { formatDate, localDate } from "../lib/dates";
 import type { Member } from "../lib/types";
 import ProfessionalDialog from "./ProfessionalDialog";
 import { isProfessionalDate } from "./professional-date";
+import { removePlannerRecord } from "../lib/relationships";
+import { taskCompletionError } from "../lib/workflow";
+import PeopleDevelopment from "./PeopleDevelopment";
+import "./people.css";
 import "./professional.css";
 
 const blankMember = (): Omit<Member, "id"> => ({
@@ -24,6 +28,10 @@ const blankMember = (): Omit<Member, "id"> => ({
   focus: "",
   nextFeedback: "",
   notes: "",
+  team: "",
+  supervisorId: "",
+  contactId: "",
+  role: "Teammate",
 });
 const feedbackTitle = (member: Member) => `Feedback: ${member.name}`;
 const initials = (name: string) =>
@@ -57,7 +65,14 @@ export default function Leadership() {
     () =>
       [...state.members]
         .filter((member) =>
-          [member.name, member.rank, member.focus, member.notes]
+          [
+            member.name,
+            member.rank,
+            member.focus,
+            member.notes,
+            member.team || "",
+            member.role || "",
+          ]
             .join(" ")
             .toLowerCase()
             .includes(query.toLowerCase().trim()),
@@ -76,6 +91,10 @@ export default function Leadership() {
             focus: member.focus,
             nextFeedback: member.nextFeedback,
             notes: member.notes,
+            team: member.team || "",
+            supervisorId: member.supervisorId || "",
+            contactId: member.contactId || "",
+            role: member.role || "Teammate",
           },
     );
     setEditing(member);
@@ -88,6 +107,22 @@ export default function Leadership() {
         "Choose a real feedback date between years 0001 and 9999, or leave it blank.",
       );
       return;
+    }
+    if (editing !== "new" && editing && draft.supervisorId) {
+      let candidate = draft.supervisorId;
+      const visited = new Set<string>();
+      while (candidate && !visited.has(candidate)) {
+        if (candidate === editing.id) {
+          setMemberError(
+            "Choose a supervisor who does not create a circular reporting relationship.",
+          );
+          return;
+        }
+        visited.add(candidate);
+        candidate =
+          state.members.find((member) => member.id === candidate)
+            ?.supervisorId || "";
+      }
     }
     mutate((next) => {
       if (editing === "new")
@@ -145,11 +180,7 @@ export default function Leadership() {
     setLogging(null);
   };
   const onCalendar = (member: Member) =>
-    state.events.some(
-      (event) =>
-        event.date === member.nextFeedback &&
-        event.title === feedbackTitle(member),
-    );
+    state.events.some((event) => event.memberId === member.id);
   const addToCalendar = (member: Member) => {
     if (!member.nextFeedback || onCalendar(member)) return;
     if (!isProfessionalDate(member.nextFeedback)) {
@@ -160,7 +191,8 @@ export default function Leadership() {
     }
     mutate((next) =>
       next.events.push({
-        id: crypto.randomUUID(),
+        id: `linked:member:${member.id}`,
+        memberId: member.id,
         title: feedbackTitle(member),
         date: member.nextFeedback,
         time: "",
@@ -379,6 +411,7 @@ export default function Leadership() {
                     </span>
                   )}
                 </div>
+                <MemberConnections member={member} />
                 {member.notes && (
                   <div className="professional-notes">{member.notes}</div>
                 )}
@@ -432,6 +465,7 @@ export default function Leadership() {
           </div>
         )}
       </section>
+      <PeopleDevelopment />
       {editing && (
         <ProfessionalDialog
           title={editing === "new" ? "Add a team member" : "Edit team member"}
@@ -465,6 +499,86 @@ export default function Leadership() {
                   />
                 </label>
               </div>
+              <div className="form-grid">
+                <label className="field">
+                  Team or section
+                  <input
+                    value={draft.team || ""}
+                    onChange={(event) =>
+                      setDraft({ ...draft, team: event.target.value })
+                    }
+                    maxLength={160}
+                    placeholder="A team, flight, or section"
+                  />
+                </label>
+                <label className="field">
+                  Relationship role
+                  <select
+                    value={draft.role || "Teammate"}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        role: event.target.value as Member["role"],
+                      })
+                    }
+                  >
+                    {[
+                      "Teammate",
+                      "Wingman",
+                      "Supervisor",
+                      "Senior leader",
+                      "Resource",
+                    ].map((role) => (
+                      <option key={role}>{role}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="form-grid">
+                <label className="field">
+                  Supervisor
+                  <select
+                    value={draft.supervisorId || ""}
+                    onChange={(event) =>
+                      setDraft({ ...draft, supervisorId: event.target.value })
+                    }
+                  >
+                    <option value="">Not linked</option>
+                    {state.members
+                      .filter(
+                        (member) =>
+                          editing === "new" || member.id !== editing.id,
+                      )
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Directory contact
+                  <select
+                    value={draft.contactId || ""}
+                    onChange={(event) =>
+                      setDraft({ ...draft, contactId: event.target.value })
+                    }
+                  >
+                    <option value="">Not linked</option>
+                    {state.contacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>
+                        {contact.name}
+                        {contact.role ? ` · ${contact.role}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="small muted">
+                Add local contact details in{" "}
+                <a href="#support">People &amp; support</a>, then link them
+                here.
+              </p>
               <label className="field">
                 Development focus
                 <input
@@ -604,8 +718,10 @@ export default function Leadership() {
           onClose={() => setDeleting(null)}
         >
           <p>
-            This deletes {deleting.name}'s development notes and feedback plan.
-            Events already added to Calendar will remain.
+            This removes {deleting.name}'s team record and its linked feedback
+            event. Assigned taskers, project plans, accomplishment records,
+            development actions, and preparation notes remain with the person
+            link cleared.
           </p>
           <div className="modal-actions">
             <button
@@ -618,9 +734,7 @@ export default function Leadership() {
               className="button primary"
               onClick={() => {
                 mutate((next) => {
-                  next.members = next.members.filter(
-                    (item) => item.id !== deleting.id,
-                  );
+                  removePlannerRecord(next, "members", deleting.id);
                 });
                 setDeleting(null);
               }}
@@ -629,6 +743,104 @@ export default function Leadership() {
             </button>
           </div>
         </ProfessionalDialog>
+      )}
+    </div>
+  );
+}
+
+function MemberConnections({ member }: { member: Member }) {
+  const { state, mutate } = usePlanner();
+  const [blockedTaskId, setBlockedTaskId] = useState<string | null>(null);
+  const blockedTask = state.tasks.find((task) => task.id === blockedTaskId);
+  const completionError = blockedTask
+    ? taskCompletionError(blockedTask, state.tasks)
+    : null;
+  const supervisor = state.members.find(
+    (item) => item.id === member.supervisorId,
+  );
+  const contact = state.contacts.find((item) => item.id === member.contactId);
+  const tasks = state.tasks.filter((task) => task.assigneeId === member.id);
+  const projects = state.projects.filter(
+    (project) => project.ownerId === member.id,
+  );
+  return (
+    <div className="people-member-connections">
+      {(member.team || member.role || supervisor || contact) && (
+        <div className="people-member-meta">
+          {member.team && <span>{member.team}</span>}
+          {member.role && <span>{member.role}</span>}
+          {supervisor && <span>Supervisor: {supervisor.name}</span>}
+          {contact && <a href="#support">Contact: {contact.name}</a>}
+        </div>
+      )}
+      {(tasks.length > 0 || projects.length > 0) && (
+        <details className="people-assigned-work">
+          <summary>
+            Assigned work · {tasks.filter((task) => !task.completed).length}{" "}
+            open taskers · {projects.length} projects
+          </summary>
+          {tasks.map((task) => (
+            <label className="people-assigned-task" key={task.id}>
+              <input
+                type="checkbox"
+                checked={task.completed}
+                aria-label={`${task.completed ? "Reopen" : "Complete"} assigned task ${task.title}`}
+                onChange={() => {
+                  if (
+                    !task.completed &&
+                    taskCompletionError(task, state.tasks)
+                  ) {
+                    setBlockedTaskId(task.id);
+                    return;
+                  }
+                  setBlockedTaskId(null);
+                  mutate((next) => {
+                    const current = next.tasks.find(
+                      (item) => item.id === task.id,
+                    );
+                    if (current) {
+                      current.completed = !current.completed;
+                      current.status = current.completed ? "Done" : "Open";
+                    }
+                  });
+                }}
+              />
+              <span>
+                <strong>{task.title}</strong>
+                <span className="small muted">
+                  {task.date ? formatDate(task.date) : "No due date"} ·{" "}
+                  {task.status || (task.completed ? "Done" : "Open")}
+                </span>
+              </span>
+            </label>
+          ))}
+          {projects.map((project) => {
+            const projectTasks = state.tasks.filter(
+              (task) => task.projectId === project.id,
+            );
+            return (
+              <div className="people-owned-project" key={project.id}>
+                <a href="#work">{project.title}</a>
+                <span className="small muted">
+                  {project.status} ·{" "}
+                  {projectTasks.filter((task) => task.completed).length}/
+                  {projectTasks.length} taskers complete
+                  {project.dueDate
+                    ? ` · Due ${formatDate(project.dueDate)}`
+                    : ""}
+                </span>
+              </div>
+            );
+          })}
+          {completionError && (
+            <p className="error-text small" role="alert">
+              {completionError}
+            </p>
+          )}
+          <a className="button ghost" href="#work">
+            Manage work &amp; taskers
+          </a>
+        </details>
       )}
     </div>
   );
