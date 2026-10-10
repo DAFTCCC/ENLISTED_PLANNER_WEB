@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { usePlanner } from "../lib/planner";
+import TaskerIntake from "./TaskerIntake";
 import { addDays, formatDate, localDate, minutes } from "../lib/dates";
 import { durationLabel } from "../lib/time-blocks";
 import { removePlannerRecord } from "../lib/relationships";
@@ -604,6 +605,14 @@ export default function Work({
                 : "Add rhythm"}
         </button>
       </div>
+      <TaskerIntake
+        onCreated={() => {
+          taskView("Active");
+          setNotice({
+            text: "Reviewed taskers created. Schedule them when you are ready.",
+          });
+        }}
+      />
       <div className="work-summary">
         <button onClick={() => taskView("Active")}>
           <span className="work-stat-icon">

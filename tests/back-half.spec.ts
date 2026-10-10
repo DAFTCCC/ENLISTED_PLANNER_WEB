@@ -156,7 +156,7 @@ test("v1 migration preserves the existing plan and linked career data survives b
     })
     .click();
   const migrated = await storedPlan(page);
-  expect(migrated.version).toBe(2);
+  expect(migrated.version).toBe(3);
   expect(migrated.blocks[0]).toEqual(legacyPlan.blocks[0]);
   expect(migrated.captures[0]).toEqual(legacyPlan.captures[0]);
   expect(migrated.members[0]).toEqual(legacyPlan.members[0]);

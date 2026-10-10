@@ -8,12 +8,13 @@ import {
 } from "react";
 import type { PlannerState } from "./types";
 import { synchronizePlannerState } from "./relationships";
+import { saveAutomaticBackup } from "./automatic-backups";
 
 export const STORAGE_KEY = "enlisted-planner:v1";
 
 export function defaultState(): PlannerState {
   return {
-    version: 2,
+    version: 3,
     profile: {
       name: "",
       service: "Air Force",
@@ -38,6 +39,25 @@ export function defaultState(): PlannerState {
     meetings: [],
     battleRhythms: [],
     careerPlans: [],
+    weeklyReviews: [],
+    planningPreferences: {
+      workingDays: [1, 2, 3, 4, 5],
+      dayStart: "08:00",
+      dayEnd: "17:00",
+      breakStart: "12:00",
+      breakEnd: "13:00",
+      maxBlockMinutes: 90,
+      eventBufferMinutes: 30,
+    },
+    careerRequirements: [],
+    delegations: [],
+    reminderPreferences: {
+      enabled: false,
+      leadMinutes: 30,
+      includeTasks: true,
+      includeEvents: true,
+      includeFollowUps: true,
+    },
     budget: {
       income: 0,
       housing: 0,
@@ -320,6 +340,16 @@ export function assertPlannerReferences(state: PlannerState): void {
         "tasks",
       ),
     );
+  for (const [index, item] of state.weeklyReviews.entries())
+    item.carriedTaskIds.forEach((id, taskIndex) =>
+      reference(
+        id,
+        `weeklyReviews[${index}].carriedTaskIds[${taskIndex}]`,
+        "tasks",
+      ),
+    );
+  for (const [index, item] of state.delegations.entries())
+    reference(item.taskId, `delegations[${index}].taskId`, "tasks");
 
   // Kahn's algorithm avoids stack overflow for a long, valid dependency chain.
   function acyclic<T extends { id: string }>(
@@ -373,6 +403,8 @@ function validateV2Extensions(state: Record<string, unknown>): void {
       "requestor",
       "notes",
     ]);
+    if (item.completedOn !== undefined)
+      date(item.completedOn, `${path}.completedOn`, true);
     if (item.suspenseTime !== undefined)
       time(item.suspenseTime, `${path}.suspenseTime`, false, true);
     if (item.status !== undefined)
@@ -707,6 +739,213 @@ function validateV2Extensions(state: Record<string, unknown>): void {
   assertPlannerReferences(state as unknown as PlannerState);
 }
 
+function validateV3Extensions(state: Record<string, unknown>): void {
+  const preferences = object(state.planningPreferences, "planningPreferences", [
+    "workingDays",
+    "dayStart",
+    "dayEnd",
+    "breakStart",
+    "breakEnd",
+    "maxBlockMinutes",
+    "eventBufferMinutes",
+  ]);
+  if (
+    !Array.isArray(preferences.workingDays) ||
+    preferences.workingDays.some(
+      (day) => !Number.isInteger(day) || day < 0 || day > 6,
+    ) ||
+    new Set(preferences.workingDays).size !== preferences.workingDays.length
+  )
+    invalid(
+      "planningPreferences.workingDays",
+      "must contain unique weekday numbers from 0 to 6",
+    );
+  time(preferences.dayStart, "planningPreferences.dayStart");
+  time(preferences.dayEnd, "planningPreferences.dayEnd", true);
+  if ((preferences.dayEnd as string) <= (preferences.dayStart as string))
+    invalid("planningPreferences", "must end after working hours start");
+  time(preferences.breakStart, "planningPreferences.breakStart", false, true);
+  time(preferences.breakEnd, "planningPreferences.breakEnd", true, true);
+  if (
+    Boolean(preferences.breakStart) !== Boolean(preferences.breakEnd) ||
+    (preferences.breakStart &&
+      (preferences.breakEnd as string) <= (preferences.breakStart as string))
+  )
+    invalid(
+      "planningPreferences",
+      "must have an ordered break or leave both break times empty",
+    );
+  number(
+    preferences.maxBlockMinutes,
+    "planningPreferences.maxBlockMinutes",
+    480,
+  );
+  if (
+    !Number.isInteger(preferences.maxBlockMinutes) ||
+    (preferences.maxBlockMinutes as number) < 1
+  )
+    invalid(
+      "planningPreferences.maxBlockMinutes",
+      "must be a positive whole number",
+    );
+  number(
+    preferences.eventBufferMinutes,
+    "planningPreferences.eventBufferMinutes",
+    180,
+  );
+  if (!Number.isInteger(preferences.eventBufferMinutes))
+    invalid("planningPreferences.eventBufferMinutes", "must be a whole number");
+  const reminders = object(state.reminderPreferences, "reminderPreferences", [
+    "enabled",
+    "leadMinutes",
+    "includeTasks",
+    "includeEvents",
+    "includeFollowUps",
+  ]);
+  for (const key of [
+    "enabled",
+    "includeTasks",
+    "includeEvents",
+    "includeFollowUps",
+  ])
+    boolean(reminders[key], `reminderPreferences.${key}`);
+  number(reminders.leadMinutes, "reminderPreferences.leadMinutes", 10080);
+  if (!Number.isInteger(reminders.leadMinutes))
+    invalid("reminderPreferences.leadMinutes", "must be a whole number");
+  const weeks = new Set<string>();
+  rows(
+    state.weeklyReviews,
+    "weeklyReviews",
+    (item, path) => {
+      strings(item, path, ["wins", "lessons", "nextFocus"]);
+      date(item.weekStart, `${path}.weekStart`);
+      date(item.reviewedOn, `${path}.reviewedOn`);
+      if (weeks.has(item.weekStart as string))
+        invalid(`${path}.weekStart`, "duplicates another weekly review");
+      weeks.add(item.weekStart as string);
+      stringList(item.carriedTaskIds, `${path}.carriedTaskIds`, true);
+      const metrics = object(item.metrics, `${path}.metrics`, [
+        "plannedMinutes",
+        "completedBlockMinutes",
+        "completedTaskCount",
+        "captureCount",
+      ]);
+      for (const key of Object.keys(metrics))
+        number(metrics[key], `${path}.metrics.${key}`);
+    },
+    [
+      "id",
+      "weekStart",
+      "reviewedOn",
+      "wins",
+      "lessons",
+      "nextFocus",
+      "carriedTaskIds",
+      "metrics",
+    ],
+  );
+  rows(
+    state.careerRequirements,
+    "careerRequirements",
+    (item, path) => {
+      strings(item, path, [
+        "title",
+        "evidence",
+        "notes",
+        "sourceUrl",
+        "rank",
+        "afsc",
+      ]);
+      choice(item.area, `${path}.area`, [
+        "PME",
+        "Training",
+        "Certification",
+        "Records",
+        "Experience",
+      ]);
+      choice(item.status, `${path}.status`, [
+        "Planned",
+        "In progress",
+        "Complete",
+      ]);
+      choice(item.service, `${path}.service`, [
+        "Any",
+        "Air Force",
+        "Space Force",
+      ]);
+      choice(item.component, `${path}.component`, [
+        "Any",
+        "Active Duty",
+        "Guard",
+        "Reserve",
+      ]);
+      for (const key of [
+        "dueDate",
+        "completedDate",
+        "expiresDate",
+        "lastVerified",
+      ])
+        date(item[key], `${path}.${key}`, true);
+    },
+    [
+      "id",
+      "title",
+      "area",
+      "status",
+      "dueDate",
+      "completedDate",
+      "expiresDate",
+      "evidence",
+      "notes",
+      "sourceUrl",
+      "lastVerified",
+      "service",
+      "component",
+      "rank",
+      "afsc",
+    ],
+  );
+  rows(
+    state.delegations,
+    "delegations",
+    (item, path) => {
+      strings(item, path, [
+        "taskId",
+        "recipientName",
+        "recipientEmail",
+        "blocker",
+        "notes",
+      ]);
+      optionalStrings(item, path, ["remoteId"]);
+      choice(item.status, `${path}.status`, [
+        "Offered",
+        "Accepted",
+        "In progress",
+        "Blocked",
+        "Submitted",
+        "Closed",
+        "Declined",
+      ]);
+      date(item.sentOn, `${path}.sentOn`);
+      date(item.updatedOn, `${path}.updatedOn`);
+      number(item.progress, `${path}.progress`, 100);
+    },
+    [
+      "id",
+      "taskId",
+      "recipientName",
+      "recipientEmail",
+      "status",
+      "sentOn",
+      "updatedOn",
+      "progress",
+      "blocker",
+      "notes",
+    ],
+    ["remoteId"],
+  );
+}
+
 /** Validate every persisted field before replacing the current plan. No data is silently dropped. */
 export function parsePlannerData(raw: string): PlannerState {
   if (new TextEncoder().encode(raw).byteLength > 10 * 1024 * 1024)
@@ -735,6 +974,18 @@ export function parsePlannerData(raw: string): PlannerState {
     parsed && typeof parsed === "object"
       ? (parsed as Record<string, unknown>).version
       : undefined;
+  if (version !== 1 && version !== 2 && version !== 3)
+    invalid(
+      "planner.version",
+      "is unsupported; this app accepts version 1, 2, and 3 backups",
+    );
+  const v3Fields = [
+    "weeklyReviews",
+    "planningPreferences",
+    "careerRequirements",
+    "delegations",
+    "reminderPreferences",
+  ];
   const state = object(parsed, "planner", [
     "version",
     "profile",
@@ -747,23 +998,25 @@ export function parsePlannerData(raw: string): PlannerState {
     "budget",
     "fitness",
     "habits",
-    ...(version === 2 ? newCollections : []),
+    ...(version !== 1 ? newCollections : []),
+    ...(version === 3 ? v3Fields : []),
   ]);
-  if (state.version !== 1 && state.version !== 2)
-    invalid(
-      "planner.version",
-      "is unsupported; this app accepts version 1 and 2 backups",
-    );
-  const profile = object(state.profile, "profile", [
-    "name",
-    "service",
-    "rank",
-    "component",
-    "dateOfRank",
-    "dateOfEntry",
-    "role",
-    "onboarded",
-  ]);
+  const profile = object(
+    state.profile,
+    "profile",
+    [
+      "name",
+      "service",
+      "rank",
+      "component",
+      "dateOfRank",
+      "dateOfEntry",
+      "role",
+      "onboarded",
+    ],
+    version === 3 ? ["afsc"] : [],
+  );
+  optionalStrings(profile, "profile", ["afsc"]);
   string(profile.name, "profile.name");
   string(profile.rank, "profile.rank");
   choice(profile.service, "profile.service", ["Air Force", "Space Force"]);
@@ -800,7 +1053,7 @@ export function parsePlannerData(raw: string): PlannerState {
       ]);
     },
     ["id", "date", "start", "end", "title", "category", "notes", "completed"],
-    version === 2 ? ["taskId", "rhythmId"] : [],
+    version !== 1 ? ["taskId", "rhythmId"] : [],
   );
   rows(
     state.tasks,
@@ -812,7 +1065,7 @@ export function parsePlannerData(raw: string): PlannerState {
       choice(item.priority, `${path}.priority`, ["High", "Normal", "Low"]);
     },
     ["id", "title", "date", "completed", "priority"],
-    version === 2
+    version !== 1
       ? [
           "projectId",
           "assigneeId",
@@ -826,6 +1079,7 @@ export function parsePlannerData(raw: string): PlannerState {
           "notes",
           "estimatedMinutes",
           "kind",
+          ...(version === 3 ? ["completedOn"] : []),
         ]
       : [],
   );
@@ -846,12 +1100,12 @@ export function parsePlannerData(raw: string): PlannerState {
         "None",
         "Weekly",
         "Monthly",
-        ...(version === 2 ? ["Quarterly", "Yearly"] : []),
+        ...(version !== 1 ? ["Quarterly", "Yearly"] : []),
       ]);
       choice(item.source, `${path}.source`, ["User entered", "Estimate"]);
     },
     ["id", "title", "date", "time", "category", "recurrence", "source"],
-    version === 2
+    version !== 1
       ? [
           "memberId",
           "developmentActionId",
@@ -889,7 +1143,7 @@ export function parsePlannerData(raw: string): PlannerState {
       "lessons",
       "tags",
     ],
-    version === 2
+    version !== 1
       ? [
           "impact",
           "evidence",
@@ -912,7 +1166,7 @@ export function parsePlannerData(raw: string): PlannerState {
       number(item.progress, `${path}.progress`, 100);
     },
     ["id", "title", "targetDate", "category", "progress"],
-    version === 2 ? ["objectiveId", "source", "sourceRef"] : [],
+    version !== 1 ? ["objectiveId", "source", "sourceRef"] : [],
   );
   rows(
     state.members,
@@ -923,7 +1177,7 @@ export function parsePlannerData(raw: string): PlannerState {
       date(item.nextFeedback, `${path}.nextFeedback`, true);
     },
     ["id", "name", "rank", "focus", "nextFeedback", "notes"],
-    version === 2 ? ["team", "supervisorId", "contactId", "role"] : [],
+    version !== 1 ? ["team", "supervisorId", "contactId", "role"] : [],
   );
   const budgetKeys = [
     "income",
@@ -968,16 +1222,17 @@ export function parsePlannerData(raw: string): PlannerState {
     },
     ["id", "title", "category", "completedDates"],
   );
-  if (version === 1) {
-    // Validate legacy data first. Migration adds empty collections without
-    // rewriting the stored backup until the user makes an edit or imports it.
-    const migrated = { ...state, version: 2 } as unknown as PlannerState;
-    for (const key of newCollections)
-      (migrated as unknown as Record<string, unknown>)[key] = [];
-    return migrated;
+  // Validate each historical schema before adding fields. Merely reading old
+  // data keeps its saved bytes intact until an edit or explicit import.
+  if (version === 1) for (const key of newCollections) state[key] = [];
+  if (version !== 3) {
+    const defaults = defaultState() as unknown as Record<string, unknown>;
+    for (const key of v3Fields) state[key] = defaults[key];
+    state.version = 3;
   }
+  validateV3Extensions(state);
   validateV2Extensions(state);
-  return parsed as PlannerState;
+  return state as unknown as PlannerState;
 }
 
 interface LoadedPlanner {
@@ -1026,7 +1281,7 @@ function loadPlanner(): LoadedPlanner {
 
 interface PlannerContextValue {
   state: PlannerState;
-  mutate: (updater: (draft: PlannerState) => void) => void;
+  mutate: (updater: (draft: PlannerState) => void) => boolean;
   reset: () => void;
   importData: (raw: string) => void;
   exportData: () => string;
@@ -1135,22 +1390,34 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         setStorageError(
           `Your changes could not be applied. ${error instanceof Error ? error.message : "Check linked records and try again."}`,
         );
-        return;
+        return false;
       }
       currentState.current = draft;
       setState(draft);
+      return true;
     },
     reset() {
+      void saveAutomaticBackup(
+        JSON.stringify(currentState.current),
+        "Before reset",
+      ).catch(() => {});
       allowReplacement();
-      setState(defaultState());
+      const fresh = defaultState();
+      currentState.current = fresh;
+      setState(fresh);
     },
     importData(raw) {
       const imported = parsePlannerData(raw);
+      void saveAutomaticBackup(
+        JSON.stringify(currentState.current),
+        "Before replacement",
+      ).catch(() => {});
       allowReplacement();
+      currentState.current = imported;
       setState(imported);
     },
     exportData() {
-      return JSON.stringify(state);
+      return JSON.stringify(currentState.current);
     },
   };
   return (

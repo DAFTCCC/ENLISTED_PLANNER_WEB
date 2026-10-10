@@ -1,0 +1,305 @@
+.team-intake-page {
+  display: grid;
+  gap: 1.2rem;
+}
+.team-intake-page .page-heading {
+  margin-bottom: 0;
+}
+.team-intake-page .professional-tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.6rem;
+}
+.team-intake-page .professional-tabs button {
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
+  border-radius: 0.45rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+}
+.team-intake-page .professional-tabs button[aria-selected="true"] {
+  background: var(--navy);
+  color: white;
+}
+.team-exchange-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.team-exchange-note > svg {
+  flex: none;
+  color: #aa7636;
+  margin-top: 0.2rem;
+}
+.team-exchange-note h2,
+.team-import h2,
+.team-recipient h2 {
+  margin-top: 0;
+}
+.team-exchange-note p,
+.team-import p,
+.team-recipient > p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.team-exchange-note p:last-child {
+  margin-bottom: 0;
+}
+.team-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.team-stats > div {
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  display: grid;
+  gap: 0.15rem;
+}
+.team-stats strong {
+  color: var(--navy);
+  font-size: 1.8rem;
+}
+.team-stats span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.team-import h2 {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.team-intake-page .field,
+.tasker-intake .field {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+.team-intake-page input,
+.team-intake-page select,
+.team-intake-page textarea,
+.tasker-intake input:not([type="checkbox"]),
+.tasker-intake select,
+.tasker-intake textarea {
+  width: 100%;
+  min-width: 0;
+}
+.team-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.team-file {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+.team-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.team-file:focus-within {
+  outline: 2px solid #aa7636;
+  outline-offset: 3px;
+}
+.team-offer-list {
+  display: grid;
+  gap: 1rem;
+}
+.team-offer-card {
+  min-width: 0;
+}
+.team-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.team-card-heading h2 {
+  font-size: 1.15rem;
+  margin: 0.35rem 0 0.5rem;
+}
+.team-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 1rem;
+  padding: 0.35rem 0.7rem;
+  background: #eef1f5;
+  color: var(--navy);
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.team-status-blocked {
+  background: #fff2e4;
+  color: #8b4b14;
+}
+.team-status-submitted {
+  background: #eaf3fb;
+  color: #245d8f;
+}
+.team-status-closed {
+  background: #e9f3ec;
+  color: #2e6a45;
+}
+.team-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.team-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 1rem 0;
+}
+.team-progress progress {
+  width: min(220px, 55%);
+  height: 0.5rem;
+  accent-color: var(--navy);
+}
+.team-blocker,
+.team-notice {
+  border: 1px solid #e4d5b3;
+  background: #fff8e9;
+  color: #70501c;
+  border-radius: 0.55rem;
+  padding: 0.8rem 1rem;
+  line-height: 1.55;
+}
+.team-notice {
+  margin: 0;
+}
+.team-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.team-empty {
+  text-align: center;
+  padding: 2rem;
+}
+.team-empty > svg {
+  color: var(--muted);
+}
+.team-empty p {
+  color: var(--muted);
+}
+.team-received {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.team-received h3 {
+  margin-bottom: 0.5rem;
+}
+.team-received form {
+  padding-top: 1rem;
+}
+.team-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.team-check input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0.15rem 0 0;
+  flex: none;
+}
+.team-update-review h3 {
+  margin-top: 0;
+}
+.tasker-intake-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.tasker-intake-entry > p {
+  font-size: 0.85rem;
+  margin: 0;
+  color: var(--muted);
+}
+.tasker-intake > p:first-child {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.intake-drafts {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.intake-draft {
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  padding: 1rem;
+  min-width: 0;
+}
+.intake-draft h3 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+.intake-questions {
+  background: #f5f7fa;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.intake-questions h4 {
+  margin: 0 0 0.5rem;
+  color: var(--navy);
+}
+.intake-questions ul {
+  margin: 0;
+  padding-left: 1rem;
+  line-height: 1.6;
+}
+.intake-confirm {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.intake-draft details {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  .team-stats {
+    gap: 0.5rem;
+  }
+  .team-stats > div {
+    padding: 0.8rem 0.6rem;
+  }
+  .team-stats strong {
+    font-size: 1.4rem;
+  }
+  .team-stats span {
+    font-size: 0.7rem;
+  }
+  .team-card-heading {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .team-exchange-note {
+    gap: 0.6rem;
+  }
+  .intake-draft {
+    padding: 0.8rem;
+  }
+}

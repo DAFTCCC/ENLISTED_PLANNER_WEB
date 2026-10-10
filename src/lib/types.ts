@@ -26,7 +26,9 @@ export type Page =
   | "settings"
   | "work"
   | "strategy"
-  | "support";
+  | "support"
+  | "review"
+  | "team";
 export interface Profile {
   name: string;
   service: "Air Force" | "Space Force";
@@ -36,6 +38,7 @@ export interface Profile {
   dateOfEntry: string;
   role: "Individual" | "Supervisor" | "Senior leader";
   onboarded: boolean;
+  afsc?: string;
 }
 export interface TimeBlock {
   id: string;
@@ -67,6 +70,7 @@ export interface Task {
   notes?: string;
   estimatedMinutes?: number;
   kind?: "Task" | "Milestone";
+  completedOn?: string;
 }
 export interface CalendarEvent {
   id: string;
@@ -268,8 +272,76 @@ export interface CareerPlan {
   sourceUrl: string;
   lastVerified: string;
 }
+export interface WeeklyReview {
+  id: string;
+  weekStart: string;
+  reviewedOn: string;
+  wins: string;
+  lessons: string;
+  nextFocus: string;
+  carriedTaskIds: string[];
+  metrics: {
+    plannedMinutes: number;
+    completedBlockMinutes: number;
+    completedTaskCount: number;
+    captureCount: number;
+  };
+}
+export interface PlanningPreferences {
+  workingDays: number[];
+  dayStart: string;
+  dayEnd: string;
+  breakStart: string;
+  breakEnd: string;
+  maxBlockMinutes: number;
+  eventBufferMinutes: number;
+}
+export interface CareerRequirement {
+  id: string;
+  title: string;
+  area: "PME" | "Training" | "Certification" | "Records" | "Experience";
+  status: "Planned" | "In progress" | "Complete";
+  dueDate: string;
+  completedDate: string;
+  expiresDate: string;
+  evidence: string;
+  notes: string;
+  sourceUrl: string;
+  lastVerified: string;
+  service: "Any" | Profile["service"];
+  component: "Any" | Profile["component"];
+  rank: string;
+  afsc: string;
+}
+export interface Delegation {
+  id: string;
+  taskId: string;
+  recipientName: string;
+  recipientEmail: string;
+  status:
+    | "Offered"
+    | "Accepted"
+    | "In progress"
+    | "Blocked"
+    | "Submitted"
+    | "Closed"
+    | "Declined";
+  sentOn: string;
+  updatedOn: string;
+  progress: number;
+  blocker: string;
+  notes: string;
+  remoteId?: string;
+}
+export interface ReminderPreferences {
+  enabled: boolean;
+  leadMinutes: number;
+  includeTasks: boolean;
+  includeEvents: boolean;
+  includeFollowUps: boolean;
+}
 export interface PlannerState {
-  version: 2;
+  version: 3;
   profile: Profile;
   blocks: TimeBlock[];
   tasks: Task[];
@@ -288,4 +360,9 @@ export interface PlannerState {
   meetings: Meeting[];
   battleRhythms: BattleRhythm[];
   careerPlans: CareerPlan[];
+  weeklyReviews: WeeklyReview[];
+  planningPreferences: PlanningPreferences;
+  careerRequirements: CareerRequirement[];
+  delegations: Delegation[];
+  reminderPreferences: ReminderPreferences;
 }

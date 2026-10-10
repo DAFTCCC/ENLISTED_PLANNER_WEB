@@ -19,6 +19,7 @@ import { parsePlannerData, usePlanner } from "../lib/planner";
 import { localDate, formatDate } from "../lib/dates";
 import type { PlannerState, Profile } from "../lib/types";
 import "./tools-settings.css";
+import BackupRecovery from "./BackupRecovery";
 
 const airForceRanks = [
   "AB",
@@ -252,6 +253,7 @@ export default function Settings() {
           <p>Your profile, your planner, your data.</p>
         </div>
       </header>
+      <BackupRecovery />
       <div className="settings-columns">
         <section className="panel" aria-labelledby="profile-heading">
           <div className="panel-heading">
@@ -266,6 +268,17 @@ export default function Settings() {
             </div>
           </div>
           <form onSubmit={saveProfile}>
+            <label className="field">
+              <span>AFSC or specialty</span>
+              <input
+                value={profile.afsc ?? ""}
+                maxLength={40}
+                onChange={(event) =>
+                  setProfile({ ...profile, afsc: event.target.value })
+                }
+                placeholder="Your current specialty code"
+              />
+            </label>
             <label className="field">
               <span>
                 Preferred name <span className="muted">(optional)</span>
@@ -591,6 +604,14 @@ export default function Settings() {
                   pending.state.careerPlans.length}
               </dd>
             </div>
+            <div>
+              <dt>Weekly reviews, qualifications & shared taskers</dt>
+              <dd>
+                {pending.state.weeklyReviews.length +
+                  pending.state.careerRequirements.length +
+                  pending.state.delegations.length}
+              </dd>
+            </div>
           </dl>
           <p className="small muted">
             Export your current plan first if you want to keep it. This
@@ -608,7 +629,7 @@ export default function Settings() {
             setConfirmation(null);
             setError("");
             setMessage(
-              "Planner reset. Your previous entries have been removed from this browser.",
+              "Current planner reset. Automatic recovery copies remain available until you delete them in Backup recovery.",
             );
           }}
         >
@@ -616,11 +637,13 @@ export default function Settings() {
             This will remove your profile, time blocks, tasks, calendar events,
             captures, goals, projects, priorities, contacts, development and
             discipline preparation plans, meetings, battle rhythms, career
-            plans, leadership records, and tool inputs from this browser.
+            plans, qualifications, weekly reviews, shared taskers, leadership
+            records, preferences, and tool inputs from this browser.
           </p>
           <p className="small muted">
-            Export a backup first if you want to keep your work. This action
-            cannot be undone without a backup.
+            This resets your current planner. Automatic recovery copies remain
+            in this browser; delete them separately in Backup recovery if you
+            want to remove that history too.
           </p>
         </Confirmation>
       )}

@@ -147,7 +147,7 @@ test("backup contains the full plan, import restores it, and production app relo
   const download = await downloadPromise;
   const backup = JSON.parse(await readFile((await download.path())!, "utf8"));
   expect(backup.blocks[0].title).toBe("Evening PT");
-  expect(backup.version).toBe(2);
+  expect(backup.version).toBe(3);
   const changed = structuredClone(backup);
   changed.blocks[0].title = "Restored evening PT";
   await page.getByLabel("Choose planner backup").setInputFiles({

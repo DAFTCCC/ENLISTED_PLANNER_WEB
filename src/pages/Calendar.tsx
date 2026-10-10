@@ -23,6 +23,7 @@ import {
 } from "../lib/calendar-agenda";
 import { taskCompletionError } from "../lib/workflow";
 import "./calendar.css";
+import CalendarConnections from "./CalendarConnections";
 
 type EventDraft = Omit<CalendarEvent, "id"> & { id?: string };
 const categories: CalendarEvent["category"][] = [
@@ -677,6 +678,7 @@ export default function Calendar({
           </section>
         </aside>
       </div>
+      <CalendarConnections />
 
       {dialogOpen && (
         <div

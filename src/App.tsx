@@ -20,38 +20,46 @@ import {
   BriefcaseBusiness,
   Target,
   HandHeart,
+  ClipboardCheck,
+  UserRoundCheck,
 } from "lucide-react";
 import { usePlanner } from "./lib/planner";
 import { localDate } from "./lib/dates";
 import type { Page, Profile } from "./lib/types";
 import Today from "./pages/Today";
-import Calendar from "./pages/Calendar";
-import Career from "./pages/Career";
 import Captures from "./pages/Captures";
 import Readiness from "./pages/Readiness";
 import Leadership from "./pages/Leadership";
 import Tools from "./pages/Tools";
-import Settings from "./pages/Settings";
 import DialogAccessibility from "./components/DialogAccessibility";
+import AutomaticBackups from "./pages/AutomaticBackups";
+import { ReminderRunner } from "./lib/reminders";
+const Calendar = lazy(() => import("./pages/Calendar"));
+const Career = lazy(() => import("./pages/Career"));
+const Settings = lazy(() => import("./pages/Settings"));
 const Work = lazy(() => import("./pages/Work"));
 const Strategy = lazy(() => import("./pages/Strategy"));
 const Support = lazy(() => import("./pages/Support"));
+const WeeklyReview = lazy(() => import("./pages/WeeklyReview"));
+const TeamTaskers = lazy(() => import("./pages/TeamTaskers"));
 
 const nav = [
   { page: "today", label: "Day plan", icon: Compass },
   { page: "calendar", label: "Calendar", icon: CalendarDays },
+  { page: "review", label: "Review & plan", icon: ClipboardCheck },
   { page: "work", label: "Projects & taskers", icon: BriefcaseBusiness },
   { page: "strategy", label: "Mission & priorities", icon: Target },
   { page: "career", label: "Career progress", icon: Mountain },
   { page: "captures", label: "Career records", icon: NotebookPen },
   { page: "readiness", label: "Personal readiness", icon: HeartPulse },
   { page: "leadership", label: "Leadership", icon: Users },
+  { page: "team", label: "Shared taskers", icon: UserRoundCheck },
   { page: "support", label: "Helping Hands", icon: HandHeart },
   { page: "tools", label: "Tools", icon: Wrench },
 ] as const;
 const pages: Page[] = [...nav.map((item) => item.page), "settings"];
 function currentPage(): Page {
-  const hash = window.location.hash.slice(1) as Page;
+  const hash = window.location.hash.slice(1).split("?")[0] as Page;
   return pages.includes(hash) ? hash : "today";
 }
 
@@ -130,6 +138,8 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <AutomaticBackups />
+      <ReminderRunner />
       <a
         className="skip-link"
         href="#main-content"
@@ -165,9 +175,9 @@ export default function App() {
         <div className="sidebar-rule" />
         <p className="nav-heading">YOUR PLANNER</p>
         <nav>
-          {nav.map((item, index) => (
+          {nav.map((item) => (
             <div key={item.page}>
-              {index === 4 && (
+              {item.page === "career" && (
                 <p className="nav-heading second">CAREER & PEOPLE</p>
               )}
               <button
@@ -299,6 +309,24 @@ export default function App() {
               />
             )}
             {page === "career" && <Career />}
+            {page === "review" && (
+              <WeeklyReview
+                onNavigate={go}
+                onOpenDay={(date) => {
+                  setDay(date);
+                  go("today");
+                }}
+              />
+            )}
+            {page === "team" && (
+              <TeamTaskers
+                onNavigate={go}
+                onOpenDay={(date) => {
+                  setDay(date);
+                  go("today");
+                }}
+              />
+            )}
             {page === "work" && (
               <Work
                 onOpenDay={(date, taskId) => {

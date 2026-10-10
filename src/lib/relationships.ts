@@ -1,4 +1,5 @@
 import type { CalendarEvent, PlannerState, Task } from "./types";
+import { localDate } from "./dates";
 
 export type PlannerRecordCollection =
   | "tasks"
@@ -11,7 +12,10 @@ export type PlannerRecordCollection =
   | "meetings"
   | "battleRhythms"
   | "careerPlans"
-  | "goals";
+  | "goals"
+  | "careerRequirements"
+  | "weeklyReviews"
+  | "delegations";
 
 type EventLink =
   | "memberId"
@@ -43,6 +47,12 @@ export function removePlannerRecord(
 
   switch (collection) {
     case "tasks":
+      for (const review of state.weeklyReviews)
+        review.carriedTaskIds = review.carriedTaskIds.filter(
+          (taskId) => taskId !== id,
+        );
+      for (const delegation of state.delegations)
+        if (delegation.taskId === id) delegation.taskId = "";
       for (const block of state.blocks)
         if (block.taskId === id) delete block.taskId;
       for (const capture of state.captures)
@@ -396,10 +406,10 @@ function linkedEvents(state: PlannerState): LinkedEvent[] {
       recordId: meeting.id,
       link: "meetingId",
       title: meeting.title,
-      date: meeting.nextDate || meeting.date,
+      date: meeting.date,
       time: meeting.time,
       source: "User entered",
-      active: Boolean(meeting.nextDate || meeting.date),
+      active: Boolean(meeting.date),
     })),
     ...state.goals.map((goal): LinkedEvent => ({
       id: `linked:goal:${goal.id}`,
@@ -426,6 +436,12 @@ export function synchronizePlannerState(
   previous?: PlannerState,
 ): void {
   synchronizeCompletion(draft, previous);
+  const previousTasks = new Map(previous?.tasks.map((task) => [task.id, task]));
+  for (const task of draft.tasks) {
+    if (!task.completed) delete task.completedOn;
+    else if (!previousTasks.get(task.id)?.completed && !task.completedOn)
+      task.completedOn = localDate();
+  }
   const linked = linkedEvents(draft);
   const previousLinked = new Map(
     previous && linkedEvents(previous).map((event) => [event.id, event]),

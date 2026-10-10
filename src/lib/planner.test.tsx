@@ -29,7 +29,15 @@ const v2Collections = [
 function legacyState() {
   const legacy = populatedState() as unknown as Record<string, unknown>;
   legacy.version = 1;
-  for (const key of v2Collections) delete legacy[key];
+  for (const key of [
+    ...v2Collections,
+    "weeklyReviews",
+    "planningPreferences",
+    "careerRequirements",
+    "delegations",
+    "reminderPreferences",
+  ])
+    delete legacy[key];
   return legacy;
 }
 
@@ -391,7 +399,7 @@ describe("backup validation", () => {
     [
       "unsupported version",
       (value: Record<string, unknown>) => {
-        value.version = 3;
+        value.version = 99;
       },
     ],
     [
@@ -850,7 +858,7 @@ describe("version 1 migration and linked version 2 backups", () => {
   it("migrates every legacy collection and field while adding empty linked collections", () => {
     const legacy = legacyState();
     const migrated = parsePlannerData(JSON.stringify(legacy));
-    expect(migrated.version).toBe(2);
+    expect(migrated.version).toBe(3);
     for (const [key, value] of Object.entries(legacy))
       if (key !== "version")
         expect((migrated as unknown as Record<string, unknown>)[key]).toEqual(
@@ -859,12 +867,12 @@ describe("version 1 migration and linked version 2 backups", () => {
     for (const key of v2Collections) expect(migrated[key]).toEqual([]);
   });
 
-  it("loads legacy storage without rewriting its original bytes, then saves version 2 on edit", () => {
+  it("loads legacy storage without rewriting its original bytes, then saves version 3 on edit", () => {
     const raw = JSON.stringify(legacyState(), null, 2);
     localStorage.setItem(STORAGE_KEY, raw);
     const writes = vi.spyOn(localStorage, "setItem");
     const { result } = renderHook(() => usePlanner(), { wrapper });
-    expect(result.current.state.version).toBe(2);
+    expect(result.current.state.version).toBe(3);
     expect(result.current.state.captures).toEqual(populatedState().captures);
     expect(writes).not.toHaveBeenCalled();
     expect(localStorage.getItem(STORAGE_KEY)).toBe(raw);
@@ -874,7 +882,7 @@ describe("version 1 migration and linked version 2 backups", () => {
       }),
     );
     const saved = parsePlannerData(localStorage.getItem(STORAGE_KEY)!);
-    expect(saved.version).toBe(2);
+    expect(saved.version).toBe(3);
     expect(saved.captures).toEqual(populatedState().captures);
     expect(saved.profile.name).toBe("Updated name");
   });

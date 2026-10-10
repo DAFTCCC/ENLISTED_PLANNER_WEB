@@ -1,0 +1,132 @@
+.career-readiness {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.career-readiness > .panel-heading {
+  margin-bottom: 0;
+}
+.career-readiness-intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.career-readiness-profile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  padding: 15px;
+  border-radius: 10px;
+  background: var(--surface-subtle, #f7f9f8);
+}
+.career-readiness-profile .field {
+  flex: 1;
+  min-width: 180px;
+}
+.career-readiness-profile p {
+  width: 100%;
+  margin: 0;
+}
+.career-readiness-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.career-readiness-stat {
+  border: 1px solid var(--border, #e5e9ed);
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+.career-readiness-stat strong {
+  font-size: 24px;
+  color: var(--navy);
+}
+.career-readiness-stat span {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.career-readiness-list {
+  display: grid;
+  gap: 14px;
+}
+.career-readiness-card {
+  min-width: 0;
+}
+.career-readiness-card h3,
+.career-readiness-card p,
+.career-readiness-card li {
+  overflow-wrap: anywhere;
+}
+.career-readiness-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 15px 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.career-readiness-facts dt {
+  color: var(--muted);
+}
+.career-readiness-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+.career-readiness-evidence {
+  font-size: 13px;
+  white-space: pre-wrap;
+  margin: 16px 0;
+  line-height: 1.7;
+}
+.career-readiness-prompts {
+  border-left: 3px solid var(--gold);
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.career-readiness-prompts ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.career-readiness-source {
+  display: flex;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 12px;
+}
+.career-readiness-source a {
+  color: var(--navy);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.career-readiness-scope {
+  border: 1px solid var(--border, #e5e9ed);
+  border-radius: 10px;
+  padding: 14px;
+}
+.career-readiness-scope legend {
+  font-size: 13px;
+  padding: 0 4px;
+}
+@media (max-width: 650px) {
+  .career-readiness-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .career-readiness > .panel-heading {
+    align-items: start;
+    flex-wrap: wrap;
+  }
+  .career-readiness-profile .button {
+    width: 100%;
+  }
+  .career-readiness-profile .field {
+    min-width: 0;
+    width: 100%;
+  }
+}

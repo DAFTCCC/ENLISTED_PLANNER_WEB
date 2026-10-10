@@ -1,0 +1,237 @@
+.scheduling-assistant {
+  margin-top: 24px;
+  padding: 24px;
+}
+.scheduling-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.scheduling-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.scheduling-intro {
+  color: var(--muted);
+  max-width: 82ch;
+  line-height: 1.65;
+}
+.scheduling-date-grid {
+  max-width: 560px;
+  margin: 20px 0;
+}
+.scheduling-preferences {
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid var(--line, #e5e7e4);
+  background: var(--surface-alt, #f8fafc);
+  border-radius: 12px;
+}
+.scheduling-preferences .muted {
+  line-height: 1.6;
+}
+.scheduling-days,
+.scheduling-task-picker {
+  border: 0;
+  padding: 0;
+  margin: 18px 0;
+  min-width: 0;
+}
+.scheduling-days legend,
+.scheduling-task-picker legend {
+  font-weight: 650;
+  padding: 0;
+  margin-bottom: 12px;
+}
+.scheduling-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.scheduling-days label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.scheduling-task-list {
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.scheduling-task-list label {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+.scheduling-task-list input,
+.scheduling-proposal-choice input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--navy);
+}
+.scheduling-task-list span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.scheduling-task-list strong {
+  font-size: 13px;
+}
+.scheduling-task-list small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.scheduling-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+.scheduling-generate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+.scheduling-generate .muted,
+.scheduling-explanation {
+  font-size: 12px;
+}
+.scheduling-results {
+  margin-top: 24px;
+  border-top: 1px solid var(--line, #e5e7e4);
+  padding-top: 18px;
+}
+.scheduling-capacity {
+  font-size: 13px;
+  color: var(--muted);
+}
+.scheduling-capacity strong {
+  color: var(--navy);
+}
+.scheduling-proposal {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line, #e5e7e4);
+}
+.scheduling-proposal-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+.scheduling-proposal p {
+  margin: 8px 0 10px 25px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.scheduling-proposal ul {
+  list-style: none;
+  padding: 0 0 0 25px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.scheduling-proposal li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.scheduling-unplanned {
+  margin: 20px 0;
+}
+.scheduling-unplanned h3 {
+  font-size: 14px;
+}
+.scheduling-unplanned ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 12px;
+}
+.scheduling-unplanned li {
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.scheduling-unplanned li strong,
+.scheduling-unplanned li span {
+  display: block;
+}
+.scheduling-unplanned li span {
+  color: var(--muted);
+}
+.scheduling-results > .button {
+  margin-top: 20px;
+}
+.scheduling-explanation {
+  margin-top: 16px;
+  line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .scheduling-assistant {
+    padding: 18px;
+  }
+  .scheduling-heading h2 {
+    font-size: 20px;
+  }
+  .scheduling-heading > .button {
+    width: 100%;
+    justify-content: center;
+  }
+  .scheduling-preferences {
+    padding: 14px;
+  }
+  .scheduling-proposal p {
+    margin-left: 0;
+  }
+  .scheduling-proposal ul {
+    padding-left: 0;
+  }
+  .scheduling-generate .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.scheduling-recovery {
+  margin: 16px 0 0 25px;
+  padding: 14px;
+  background: #fff8eb;
+  border: 1px solid #eedbbb;
+  border-radius: 10px;
+}
+.scheduling-recovery h3 {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.scheduling-recovery p {
+  margin: 8px 0;
+  color: #756348;
+}
+.scheduling-recovery ul {
+  padding-left: 0;
+}
+.scheduling-recovery li {
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .scheduling-recovery {
+    margin-left: 0;
+  }
+}

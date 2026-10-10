@@ -16,6 +16,7 @@ import { getPromotionEstimate } from "../lib/calculations";
 import { removePlannerRecord } from "../lib/relationships";
 import type { Goal } from "../lib/types";
 import CareerPlanning from "./CareerPlanning";
+import CareerReadiness from "./CareerReadiness";
 import ProfessionalDialog from "./ProfessionalDialog";
 import { isProfessionalDate } from "./professional-date";
 import "./professional.css";
@@ -368,6 +369,7 @@ export default function Career() {
         </section>
       </div>
       <CareerPlanning />
+      <CareerReadiness />
       <section>
         <div className="professional-heading-row" style={{ marginBottom: 18 }}>
           <div>

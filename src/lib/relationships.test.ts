@@ -5,7 +5,7 @@ import type { CalendarEvent, PlannerState, Task } from "./types";
 
 function emptyState(): PlannerState {
   return {
-    version: 2,
+    version: 3,
     profile: {
       name: "",
       service: "Air Force",
@@ -30,6 +30,25 @@ function emptyState(): PlannerState {
     meetings: [],
     battleRhythms: [],
     careerPlans: [],
+    weeklyReviews: [],
+    planningPreferences: {
+      workingDays: [1, 2, 3, 4, 5],
+      dayStart: "08:00",
+      dayEnd: "17:00",
+      breakStart: "12:00",
+      breakEnd: "13:00",
+      maxBlockMinutes: 90,
+      eventBufferMinutes: 30,
+    },
+    careerRequirements: [],
+    delegations: [],
+    reminderPreferences: {
+      enabled: false,
+      leadMinutes: 30,
+      includeTasks: true,
+      includeEvents: true,
+      includeFollowUps: true,
+    },
     habits: [],
     budget: {
       income: 0,
@@ -788,7 +807,7 @@ describe("linked calendar synchronization", () => {
     });
   });
 
-  it("uses the next meeting date and current meeting time for existing linked events", () => {
+  it("keeps linked meeting events on the actual meeting date and time when follow-up dates change", () => {
     const before = populatedState();
     before.events = [
       event("linked:meeting:meeting", {
@@ -801,7 +820,7 @@ describe("linked calendar synchronization", () => {
     draft.meetings[0].time = "16:00";
     synchronizePlannerState(draft, before);
     expect(draft.events[0]).toMatchObject({
-      date: "2026-11-10",
+      date: "2026-10-21",
       time: "16:00",
       recurrence: "Quarterly",
     });
