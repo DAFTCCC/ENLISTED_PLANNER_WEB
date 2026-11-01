@@ -13,6 +13,11 @@ import {
 import { usePlanner } from "../lib/planner";
 import { formatDate, localDate } from "../lib/dates";
 import { getPromotionEstimate } from "../lib/calculations";
+import {
+  SENIOR_AIRMAN_SOURCE,
+  getGradeMilestones,
+  type RuleSource,
+} from "../lib/promotion-rules";
 import { removePlannerRecord } from "../lib/relationships";
 import type { Goal } from "../lib/types";
 import CareerPlanning from "./CareerPlanning";
@@ -20,6 +25,22 @@ import CareerReadiness from "./CareerReadiness";
 import ProfessionalDialog from "./ProfessionalDialog";
 import { isProfessionalDate } from "./professional-date";
 import "./professional.css";
+
+function SourceLine({ source, reviewedOn }: { source: RuleSource; reviewedOn: string }) {
+  return (
+    <p className="small muted promotion-source">
+      Source:{" "}
+      <a href={source.url} target="_blank" rel="noopener noreferrer">
+        {source.reference}
+      </a>{" "}
+      (dated {formatDate(source.documentDate)}). Reviewed in this app on{" "}
+      {formatDate(reviewedOn)}.{" "}
+      {source.confidence === "secondary"
+        ? "Taken from a reference summary; not yet confirmed in the instruction text."
+        : "Read in the governing instruction."}
+    </p>
+  );
+}
 
 const categories = [
   "Career milestone",
@@ -75,6 +96,10 @@ export default function Career() {
   const [goalError, setGoalError] = useState("");
   const estimate = useMemo(
     () => getPromotionEstimate(state.profile),
+    [state.profile],
+  );
+  const milestones = useMemo(
+    () => getGradeMilestones(state.profile),
     [state.profile],
   );
   const goals = [...state.goals]
@@ -297,6 +322,10 @@ export default function Career() {
                 <p className="small muted">
                   Rule version: {estimate.ruleVersion}
                 </p>
+                <SourceLine
+                  source={SENIOR_AIRMAN_SOURCE}
+                  reviewedOn="2026-11-01"
+                />
               </details>
               <button
                 className="button secondary"
@@ -317,14 +346,87 @@ export default function Career() {
                 <Plus size={15} /> Plan a milestone
               </button>
             </div>
+          ) : milestones ? (
+            <div className="professional-estimate">
+              <div className="professional-heading-row">
+                <h3>{milestones.rule.toTitle} minimum requirements</h3>
+                <span className="badge">Estimate</span>
+              </div>
+              <div className="estimate-dates" style={{ marginTop: 18 }}>
+                <div>
+                  <span className="muted small">
+                    {milestones.rule.minTigMonths} months time in grade
+                  </span>
+                  <strong>{formatDate(milestones.tigDate)}</strong>
+                </div>
+                {milestones.tisDate && (
+                  <div>
+                    <span className="muted small">
+                      {milestones.rule.minTisMonths / 12} years time in service
+                    </span>
+                    <strong>{formatDate(milestones.tisDate)}</strong>
+                  </div>
+                )}
+              </div>
+              <p className="small muted">
+                {milestones.rule.method === "Time-based"
+                  ? `Promotion to ${milestones.rule.toTitle} is time-based once you meet the minimum and keep promotion eligibility status.`
+                  : `Selection is competitive through ${milestones.rule.method === "WAPS" ? "the Weighted Airman Promotion System" : "the SNCO evaluation board"}. Meeting the minimums makes you eligible to compete; it does not mean selection.`}
+              </p>
+              <details>
+                <summary className="small">
+                  Requirements, cycle &amp; source
+                </summary>
+                <ul>
+                  {milestones.rule.requirements.map((requirement) => (
+                    <li key={requirement}>{requirement}</li>
+                  ))}
+                  {milestones.rule.pecd && (
+                    <li>
+                      Promotion eligibility cutoff date (PECD):{" "}
+                      {milestones.rule.pecd}. Promotion cycle:{" "}
+                      {milestones.rule.promotionCycle}.
+                    </li>
+                  )}
+                </ul>
+                <p className="small muted">{milestones.computationNote}</p>
+                <SourceLine
+                  source={milestones.rule.source}
+                  reviewedOn={milestones.reviewedOn}
+                />
+                <p className="small muted">
+                  Rule set: {milestones.rulesetId}. Confirm your eligibility
+                  with your unit Total Force Service Center or myFSS.
+                </p>
+              </details>
+              <button
+                className="button secondary"
+                style={{ marginTop: 14 }}
+                onClick={() => {
+                  setGoalError("");
+                  setDraft({
+                    title: `${milestones.rule.toTitle} promotion preparation`,
+                    targetDate: milestones.bothMinimumsDate,
+                    category: "Promotion preparation",
+                    progress: 0,
+                    source: "Estimate",
+                    sourceRef: milestones.rulesetId,
+                  });
+                  setEditing("new");
+                }}
+              >
+                <Plus size={15} /> Plan a milestone
+              </button>
+            </div>
           ) : (
             <div className="professional-tip" style={{ marginTop: 20 }}>
               <strong>Plan for your career stage.</strong>
               <br />
               Track testing, boards, evaluations, PME, education,
               certifications, and transition goals using milestones below.
-              Automatic promotion estimates are available for Active Duty Air
-              Force A1Cs with valid entry and rank dates. Other eligibility
+              Automatic promotion dates are available for Active Duty Air Force
+              members from AB through SMSgt with valid entry and rank dates.
+              Space Force, Guard, and Reserve rules are not built in yet. Other eligibility
               dates should be confirmed with your servicing personnel office.
             </div>
           )}
