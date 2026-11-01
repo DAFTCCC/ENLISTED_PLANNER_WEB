@@ -240,6 +240,7 @@ describe("calculateFitness", () => {
       paceSeconds: 0,
       goalPaceSeconds: 0,
       totalScore: 0,
+      exceedsCurrentScale: false,
     });
   });
 });
