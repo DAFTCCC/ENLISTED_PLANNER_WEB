@@ -8,6 +8,7 @@ import {
 } from "../lib/calculations";
 import type { Budget, Fitness } from "../lib/types";
 import "./tools-settings.css";
+import FitnessScorer from "./FitnessScorer";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -326,6 +327,7 @@ export default function Tools() {
           </div>
         </div>
       </section>
+      <FitnessScorer />
     </div>
   );
 }

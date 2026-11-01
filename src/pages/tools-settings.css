@@ -440,3 +440,38 @@
     padding: 5px;
   }
 }
+
+.pfra-results {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 0.92rem;
+}
+.pfra-results th,
+.pfra-results td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.pfra-results thead th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.pfra-results tbody th > span {
+  display: block;
+  font-weight: 400;
+}
+.pfra-results td {
+  white-space: nowrap;
+}
+.pfra-status.ok {
+  color: var(--fitness);
+  font-weight: 600 !important;
+}
+.pfra-status.warn {
+  color: #a5413c;
+  font-weight: 600 !important;
+}
