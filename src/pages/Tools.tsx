@@ -1,6 +1,11 @@
 import { Banknote, Dumbbell, ExternalLink } from "lucide-react";
 import { usePlanner } from "../lib/planner";
-import { calculateBudget, calculateFitness } from "../lib/calculations";
+import {
+  FITNESS_COMPONENT_MAXIMUMS,
+  FITNESS_SCALE_SOURCE,
+  calculateBudget,
+  calculateFitness,
+} from "../lib/calculations";
 import type { Budget, Fitness } from "../lib/types";
 import "./tools-settings.css";
 
@@ -24,6 +29,14 @@ const formatPace = (seconds: number) => {
   return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, "0")}`;
 };
 
+function formatSourceDate(value: string): string {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function Tools() {
   const { state, mutate } = usePlanner();
   const budget = calculateBudget(state.budget);
@@ -35,6 +48,16 @@ export default function Tools() {
       draft.budget[key] = number;
     });
   }
+
+  const fitnessComponents: Array<{
+    key: keyof typeof FITNESS_COMPONENT_MAXIMUMS;
+    label: string;
+  }> = [
+    { key: "cardioScore", label: "Cardio" },
+    { key: "bodyCompositionScore", label: "Waist-to-height" },
+    { key: "strengthScore", label: "Strength" },
+    { key: "coreScore", label: "Core" },
+  ];
 
   function setFitness(key: keyof Fitness, value: string, maximum = 100000) {
     const number = Math.min(maximum, Math.max(0, Number(value) || 0));
@@ -218,50 +241,32 @@ export default function Tools() {
             </div>
             <h3 className="tool-subheading">Official component points</h3>
             <p className="small muted">
-              Use the applicable official score chart for your service,
-              assessment, age, and category. Enter the points awarded, not
-              repetitions.
+              Use the current official scoring chart for your age and
+              category. Enter the points awarded, not repetitions or times.
+              The cardio event is now the 2-mile run or 20-meter HAMR.
             </p>
             <div className="fitness-score-fields">
-              <label className="field">
-                <span>Cardio (0–60)</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="60"
-                  step="0.1"
-                  value={state.fitness.cardioScore}
-                  onChange={(event) =>
-                    setFitness("cardioScore", event.target.value, 60)
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Strength (0–20)</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  step="0.1"
-                  value={state.fitness.strengthScore}
-                  onChange={(event) =>
-                    setFitness("strengthScore", event.target.value, 20)
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Core (0–20)</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  step="0.1"
-                  value={state.fitness.coreScore}
-                  onChange={(event) =>
-                    setFitness("coreScore", event.target.value, 20)
-                  }
-                />
-              </label>
+              {fitnessComponents.map(({ key, label }) => (
+                <label className="field" key={key}>
+                  <span>
+                    {label} (0–{FITNESS_COMPONENT_MAXIMUMS[key]})
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={FITNESS_COMPONENT_MAXIMUMS[key]}
+                    step="0.1"
+                    value={state.fitness[key] ?? 0}
+                    onChange={(event) =>
+                      setFitness(
+                        key,
+                        event.target.value,
+                        FITNESS_COMPONENT_MAXIMUMS[key],
+                      )
+                    }
+                  />
+                </label>
+              ))}
             </div>
           </div>
           <div className="calculation-card" aria-live="polite">
@@ -280,13 +285,34 @@ export default function Tools() {
                 <dd>{fitness.totalScore.toFixed(1)} / 100</dd>
               </div>
             </dl>
+            {fitness.exceedsCurrentScale && (
+              <p className="error-text small" role="alert">
+                Some saved points exceed the current maximums. They were
+                probably entered on the old 60/20/20 scale. Re-enter them from
+                the current scoring chart.
+              </p>
+            )}
             <div className="fitness-note">
               <strong>Preparation, not an official result</strong>
               <p className="small muted">
-                This tool sums manually entered points on a 60/20/20 scale. It
-                does not determine pass/fail, exemptions, component minimums, or
+                This tool sums manually entered points on the 50/20/15/15 scale
+                (cardio, waist-to-height, strength, core) in effect{" "}
+                {formatSourceDate(FITNESS_SCALE_SOURCE.effectiveDate)}. It does
+                not determine pass/fail, exemptions, component minimums, or
                 current policy eligibility. Verify your assessment format and
                 requirements with your fitness program office.
+              </p>
+              <p className="small muted">
+                Scale source:{" "}
+                <a
+                  href={FITNESS_SCALE_SOURCE.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {FITNESS_SCALE_SOURCE.title}
+                </a>
+                , reviewed{" "}
+                {formatSourceDate(FITNESS_SCALE_SOURCE.reviewedOn)}.
               </p>
             </div>
             <a

@@ -145,6 +145,8 @@ export interface Fitness {
   cardioScore: number;
   strengthScore: number;
   coreScore: number;
+  /** Waist-to-height ratio component points (0–20). Added November 2026. */
+  bodyCompositionScore?: number;
 }
 export interface Habit {
   id: string;
