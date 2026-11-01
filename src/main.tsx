@@ -2,6 +2,7 @@ import { StrictMode, Component, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { PlannerProvider } from "./lib/planner";
 import App from "./App";
+import VaultGate from "./components/VaultGate";
 import "./styles.css";
 
 class ErrorBoundary extends Component<
@@ -29,9 +30,11 @@ class ErrorBoundary extends Component<
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ErrorBoundary>
-      <PlannerProvider>
-        <App />
-      </PlannerProvider>
+      <VaultGate>
+        <PlannerProvider>
+          <App />
+        </PlannerProvider>
+      </VaultGate>
     </ErrorBoundary>
   </StrictMode>,
 );

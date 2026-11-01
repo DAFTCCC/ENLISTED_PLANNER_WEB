@@ -1,0 +1,73 @@
+.vault-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+.vault-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 10px 30px rgb(24 43 59 / 12%);
+}
+.vault-card h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+.vault-card p {
+  margin: 0;
+}
+.vault-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--navy);
+  color: #fff;
+}
+.vault-forgot {
+  border-top: 1px solid rgb(24 43 59 / 12%);
+  padding-top: 12px;
+}
+.vault-forgot summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.vault-forgot[open] {
+  display: grid;
+  gap: 10px;
+}
+.passcode-lock-form {
+  display: grid;
+  gap: 12px;
+}
+.passcode-lock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.passcode-lock-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.vault-forgot .button.danger-outline {
+  border: 1px solid #b4473f;
+  background: transparent;
+  color: #9d3a33;
+}
+.checkbox-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.checkbox-row input {
+  margin-top: 3px;
+  flex: none;
+}
