@@ -80,7 +80,14 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function fromBase64(value: string): Uint8Array {
+/** ArrayBuffer-backed bytes, accepted by Web Crypto under every TS lib version. */
+type Bytes = Uint8Array<ArrayBuffer>;
+
+function utf8(text: string): Bytes {
+  return new Uint8Array(encoder.encode(text));
+}
+
+function fromBase64(value: string): Bytes {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1)
@@ -88,18 +95,18 @@ function fromBase64(value: string): Uint8Array {
   return bytes;
 }
 
-function randomBytes(length: number): Uint8Array {
+function randomBytes(length: number): Bytes {
   return globalThis.crypto.getRandomValues(new Uint8Array(length));
 }
 
 async function deriveWrappingKey(
   passcode: string,
-  salt: Uint8Array,
+  salt: Bytes,
   iterations: number,
 ): Promise<CryptoKey> {
   const material = await subtle().importKey(
     "raw",
-    encoder.encode(passcode),
+    utf8(passcode),
     "PBKDF2",
     false,
     ["deriveKey"],
@@ -113,7 +120,7 @@ async function deriveWrappingKey(
   );
 }
 
-async function importDataKey(raw: Uint8Array): Promise<CryptoKey> {
+async function importDataKey(raw: Bytes): Promise<CryptoKey> {
   return subtle().importKey("raw", raw, { name: "AES-GCM" }, false, [
     "encrypt",
     "decrypt",
@@ -122,12 +129,12 @@ async function importDataKey(raw: Uint8Array): Promise<CryptoKey> {
 
 async function encrypt(
   key: CryptoKey,
-  plaintext: Uint8Array,
+  plaintext: Bytes,
   context: string,
 ): Promise<Sealed> {
   const iv = randomBytes(12);
   const data = await subtle().encrypt(
-    { name: "AES-GCM", iv, additionalData: encoder.encode(context) },
+    { name: "AES-GCM", iv, additionalData: utf8(context) },
     key,
     plaintext,
   );
@@ -138,12 +145,12 @@ async function decrypt(
   key: CryptoKey,
   sealed: Sealed,
   context: string,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const data = await subtle().decrypt(
     {
       name: "AES-GCM",
       iv: fromBase64(sealed.iv),
-      additionalData: encoder.encode(context),
+      additionalData: utf8(context),
     },
     key,
     fromBase64(sealed.data),
@@ -241,7 +248,7 @@ async function persist(active: Session, raw: string): Promise<void> {
   if (session !== active || active.conflict) return;
   const payload = await encrypt(
     active.dataKey,
-    encoder.encode(raw),
+    utf8(raw),
     PAYLOAD_CONTEXT,
   );
   const record: VaultRecord = {
@@ -318,7 +325,7 @@ async function refreshFromStorage(): Promise<void> {
 async function unwrapDataKey(
   record: VaultRecord,
   passcode: string,
-): Promise<Uint8Array> {
+): Promise<Bytes> {
   const wrappingKey = await deriveWrappingKey(
     passcode,
     fromBase64(record.kdf.salt),
@@ -388,7 +395,7 @@ export async function enableVault(
     payload:
       plaintext === null
         ? null
-        : await encrypt(dataKey, encoder.encode(plaintext), PAYLOAD_CONTEXT),
+        : await encrypt(dataKey, utf8(plaintext), PAYLOAD_CONTEXT),
     updatedAt: new Date().toISOString(),
   };
   rawKey.fill(0);
@@ -501,7 +508,7 @@ export async function sealForStorage(plaintext: string): Promise<string> {
   if (!session) throw new Error("Unlock the planner first.");
   const sealed = await encrypt(
     session.dataKey,
-    encoder.encode(plaintext),
+    utf8(plaintext),
     SNAPSHOT_CONTEXT,
   );
   return `${SEAL_PREFIX}${sealed.iv}:${sealed.data}`;
@@ -528,7 +535,7 @@ export async function openFromStorage(value: string): Promise<string> {
 export async function snapshotDigest(plaintext: string): Promise<string> {
   if (!session) throw new Error("Unlock the planner first.");
   const salt = fromBase64(session.record.digestSalt);
-  const text = encoder.encode(plaintext);
+  const text = utf8(plaintext);
   const joined = new Uint8Array(salt.length + text.length);
   joined.set(salt);
   joined.set(text, salt.length);
