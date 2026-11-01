@@ -1,4 +1,11 @@
 import { parsePlannerData } from "./planner";
+import {
+  isSealed,
+  isVaultUnlocked,
+  openFromStorage,
+  sealForStorage,
+  snapshotDigest,
+} from "./vault";
 
 export const BACKUP_DATABASE = "enlisted-planner-recovery";
 export const BACKUP_STORE = "snapshots";
@@ -12,6 +19,8 @@ export interface AutomaticBackup {
   raw: string;
   bytes: number;
   sequence?: number;
+  /** Salted digest of the decrypted plan; present on encrypted copies. */
+  digest?: string;
 }
 
 export interface BackupSummary {
@@ -20,6 +29,7 @@ export interface BackupSummary {
   reason: string;
   bytes: number;
   readable: boolean;
+  encrypted?: boolean;
   problem?: string;
 }
 
@@ -150,6 +160,7 @@ function isBackup(value: unknown): value is AutomaticBackup {
     typeof candidate.bytes === "number" &&
     (candidate.sequence === undefined ||
       (Number.isSafeInteger(candidate.sequence) && candidate.sequence >= 0)) &&
+    (candidate.digest === undefined || typeof candidate.digest === "string") &&
     candidate.bytes === new TextEncoder().encode(candidate.raw).byteLength
   );
 }
@@ -173,6 +184,26 @@ function inspectBackup(value: unknown, key: IDBValidKey): BackupSummary {
       readable: false,
       problem: "Its stored format could not be read. It has been preserved.",
     };
+  if (isSealed(value.raw))
+    return isVaultUnlocked()
+      ? {
+          id: value.id,
+          createdAt: value.createdAt,
+          reason: value.reason,
+          bytes: value.bytes,
+          readable: true,
+          encrypted: true,
+        }
+      : {
+          id: value.id,
+          createdAt: value.createdAt,
+          reason: value.reason,
+          bytes: value.bytes,
+          readable: false,
+          encrypted: true,
+          problem:
+            "This copy is encrypted by a passcode lock that is not active. It has been preserved.",
+        };
   try {
     parsePlannerData(value.raw);
     return {
@@ -233,12 +264,16 @@ async function saveBackupSnapshot(
 ): Promise<BackupSummary> {
   try {
     const canonical = JSON.stringify(parsePlannerData(raw));
+    const encrypted = isVaultUnlocked();
+    const stored = encrypted ? await sealForStorage(canonical) : canonical;
+    const digest = encrypted ? await snapshotDigest(canonical) : undefined;
     const candidate: AutomaticBackup = {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       reason,
-      raw: canonical,
-      bytes: new TextEncoder().encode(canonical).byteLength,
+      raw: stored,
+      bytes: new TextEncoder().encode(stored).byteLength,
+      ...(digest === undefined ? {} : { digest }),
     };
     notify({ ...status, phase: "saving", message: "Saving a recovery copy…" });
     const db = await openBackupDatabase();
@@ -252,6 +287,9 @@ async function saveBackupSnapshot(
         try {
           const readable = (request.result as unknown[]).filter((copy) => {
             if (!isBackup(copy)) return false;
+            // Sealed copies are verified before sealing; keep them only while
+            // their lock is active so other copies are never silently removed.
+            if (isSealed(copy.raw)) return encrypted;
             try {
               parsePlannerData(copy.raw);
               return true;
@@ -261,7 +299,12 @@ async function saveBackupSnapshot(
           }) as AutomaticBackup[];
           preserved = request.result.length - readable.length;
           const latest = [...readable].sort(newestFirst)[0];
-          if (latest?.raw === canonical) {
+          const duplicate =
+            latest !== undefined &&
+            (digest === undefined
+              ? latest.raw === canonical
+              : latest.digest === digest);
+          if (duplicate) {
             result = inspectBackup(latest, latest.id);
             return;
           }
@@ -340,6 +383,11 @@ export async function listAutomaticBackups(): Promise<BackupSummary[]> {
 
 /** Raw bytes remain downloadable even when a copy cannot be restored. */
 export async function readAutomaticBackup(id: string): Promise<string> {
+  const stored = await readStoredBackup(id);
+  return isSealed(stored) ? openFromStorage(stored) : stored;
+}
+
+async function readStoredBackup(id: string): Promise<string> {
   const db = await openBackupDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(BACKUP_STORE, "readonly");
@@ -420,4 +468,74 @@ async function clearBackupSnapshots(): Promise<void> {
       );
     };
   });
+}
+
+/**
+ * Encrypts ("seal") or decrypts ("open") every recognized recovery copy when
+ * the passcode lock is turned on or off. Copies that cannot be converted are
+ * preserved unchanged.
+ */
+export function resealAutomaticBackups(mode: "seal" | "open"): Promise<number> {
+  return queueWrite(() => resealSnapshots(mode));
+}
+
+async function resealSnapshots(mode: "seal" | "open"): Promise<number> {
+  const db = await openBackupDatabase();
+  try {
+    return await convertSnapshots(db, mode);
+  } finally {
+    db.close();
+  }
+}
+
+async function convertSnapshots(
+  db: IDBDatabase,
+  mode: "seal" | "open",
+): Promise<number> {
+  const copies = await new Promise<unknown[]>((resolve, reject) => {
+    const transaction = db.transaction(BACKUP_STORE, "readonly");
+    const request = transaction.objectStore(BACKUP_STORE).getAll();
+    transaction.oncomplete = () => resolve(request.result as unknown[]);
+    transaction.onabort = transaction.onerror = () =>
+      reject(transaction.error ?? new Error("Recovery copies could not be read"));
+  });
+  const updated: AutomaticBackup[] = [];
+  for (const copy of copies) {
+    if (!isBackup(copy)) continue;
+    try {
+      if (mode === "seal" && !isSealed(copy.raw)) {
+        const canonical = JSON.stringify(parsePlannerData(copy.raw));
+        const raw = await sealForStorage(canonical);
+        updated.push({
+          ...copy,
+          raw,
+          bytes: new TextEncoder().encode(raw).byteLength,
+          digest: await snapshotDigest(canonical),
+        });
+      } else if (mode === "open" && isSealed(copy.raw)) {
+        const raw = await openFromStorage(copy.raw);
+        const { digest: _digest, ...rest } = copy;
+        updated.push({
+          ...rest,
+          raw,
+          bytes: new TextEncoder().encode(raw).byteLength,
+        });
+      }
+    } catch {
+      // Leave unreadable copies exactly as they are.
+    }
+  }
+  if (updated.length)
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(BACKUP_STORE, "readwrite");
+      const store = transaction.objectStore(BACKUP_STORE);
+      for (const copy of updated) store.put(copy);
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = transaction.onerror = () =>
+        reject(
+          transaction.error ?? new Error("Recovery copies could not be updated"),
+        );
+    });
+  publishChange();
+  return updated.length;
 }

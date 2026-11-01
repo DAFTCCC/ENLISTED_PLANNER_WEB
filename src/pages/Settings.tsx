@@ -20,6 +20,7 @@ import { localDate, formatDate } from "../lib/dates";
 import type { PlannerState, Profile } from "../lib/types";
 import "./tools-settings.css";
 import BackupRecovery from "./BackupRecovery";
+import PasscodeLock from "./PasscodeLock";
 
 const airForceRanks = [
   "AB",
@@ -472,6 +473,7 @@ export default function Settings() {
               </p>
             </div>
           </section>
+          <PasscodeLock />
           <section
             className="panel reset-panel"
             aria-labelledby="reset-heading"

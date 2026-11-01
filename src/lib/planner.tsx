@@ -9,8 +9,17 @@ import {
 import type { PlannerState } from "./types";
 import { synchronizePlannerState } from "./relationships";
 import { saveAutomaticBackup } from "./automatic-backups";
+import {
+  PLANNER_STORAGE_KEY,
+  VAULT_CHANGED_EVENT,
+  isVaultConfigured,
+  isVaultUnlocked,
+  onVaultProblem,
+  readPlannerRaw,
+  writePlannerRaw,
+} from "./vault";
 
-export const STORAGE_KEY = "enlisted-planner:v1";
+export const STORAGE_KEY = PLANNER_STORAGE_KEY;
 
 export function defaultState(): PlannerState {
   return {
@@ -1244,7 +1253,7 @@ interface LoadedPlanner {
 
 function loadPlanner(): LoadedPlanner {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readPlannerRaw();
     if (raw === null)
       return {
         state: defaultState(),
@@ -1307,45 +1316,75 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
       try {
         if (event.storageArea && event.storageArea !== window.localStorage)
           return;
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (raw === savedRaw.current) return;
-        if (currentState.current !== savedState.current) {
+        // An unlocked passcode lock reports other tabs' saves itself.
+        if (isVaultUnlocked()) return;
+        if (isVaultConfigured()) {
           allowWrites.current = false;
           setStorageError(
-            "Your saved planner changed in another tab. This tab’s edits remain available to export, and the other saved plan has been preserved. Import a backup or reset data when you are ready to replace it.",
+            "A passcode lock was turned on in another tab. This tab’s plan remains available to export. Reload to unlock and continue.",
           );
           return;
         }
-        let external: PlannerState;
-        try {
-          external = raw === null ? defaultState() : parsePlannerData(raw);
-        } catch {
-          allowWrites.current = false;
-          setStorageError(
-            "Saved planner data changed in another tab and could not be read. It has been preserved. Export your current plan, then import a valid backup or reset data to resume saving.",
-          );
-          return;
-        }
-        savedRaw.current = raw;
-        savedState.current = external;
-        currentState.current = external;
-        allowWrites.current = true;
-        setState(external);
-        setStorageError(null);
+        applySavedChange();
       } catch {
         setStorageError(
           "Browser storage is unavailable. Changes will remain in this session; export a backup before closing this page.",
         );
       }
     }
+    function encryptedChange() {
+      try {
+        applySavedChange();
+      } catch {
+        setStorageError(
+          "Browser storage is unavailable. Changes will remain in this session; export a backup before closing this page.",
+        );
+      }
+    }
+    function applySavedChange() {
+      const raw = readPlannerRaw();
+      if (raw === savedRaw.current) return;
+      if (currentState.current !== savedState.current) {
+        allowWrites.current = false;
+        setStorageError(
+          "Your saved planner changed in another tab. This tab’s edits remain available to export, and the other saved plan has been preserved. Import a backup or reset data when you are ready to replace it.",
+        );
+        return;
+      }
+      let external: PlannerState;
+      try {
+        external = raw === null ? defaultState() : parsePlannerData(raw);
+      } catch {
+        allowWrites.current = false;
+        setStorageError(
+          "Saved planner data changed in another tab and could not be read. It has been preserved. Export your current plan, then import a valid backup or reset data to resume saving.",
+        );
+        return;
+      }
+      savedRaw.current = raw;
+      savedState.current = external;
+      currentState.current = external;
+      allowWrites.current = true;
+      setState(external);
+      setStorageError(null);
+    }
+    const stopProblems = onVaultProblem((problem) => {
+      if (problem.blockWrites) allowWrites.current = false;
+      setStorageError(problem.message);
+    });
     window.addEventListener("storage", externalChange);
-    return () => window.removeEventListener("storage", externalChange);
+    window.addEventListener(VAULT_CHANGED_EVENT, encryptedChange);
+    return () => {
+      stopProblems();
+      window.removeEventListener("storage", externalChange);
+      window.removeEventListener(VAULT_CHANGED_EVENT, encryptedChange);
+    };
   }, []);
 
   useEffect(() => {
     if (!allowWrites.current || state === savedState.current) return;
     try {
-      const existing = window.localStorage.getItem(STORAGE_KEY);
+      const existing = readPlannerRaw();
       if (savedRaw.current === undefined && existing === null)
         savedRaw.current = null;
       if (existing !== savedRaw.current) {
@@ -1356,7 +1395,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
         return;
       }
       const raw = JSON.stringify(state);
-      window.localStorage.setItem(STORAGE_KEY, raw);
+      writePlannerRaw(raw);
       savedRaw.current = raw;
       savedState.current = state;
       setStorageError(null);
@@ -1369,7 +1408,7 @@ export function PlannerProvider({ children }: { children: ReactNode }) {
 
   function allowReplacement() {
     try {
-      savedRaw.current = window.localStorage.getItem(STORAGE_KEY);
+      savedRaw.current = readPlannerRaw();
     } catch {
       savedRaw.current = undefined;
     }
