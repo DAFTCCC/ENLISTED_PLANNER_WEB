@@ -132,11 +132,31 @@ export function calculateBudget(budget: Budget | null | undefined): {
   };
 }
 
+/**
+ * Component maximums for the Physical Fitness Assessment in effect July 1,
+ * 2026: cardio 50, waist-to-height 20, strength 15, core 15.
+ * Source: https://www.af.mil/Fitness/ (reviewed 2026-11-01).
+ */
+export const FITNESS_COMPONENT_MAXIMUMS = {
+  cardioScore: 50,
+  bodyCompositionScore: 20,
+  strengthScore: 15,
+  coreScore: 15,
+} as const;
+export const FITNESS_SCALE_SOURCE = {
+  title: "Department of the Air Force, Culture of Fitness",
+  url: "https://www.af.mil/Fitness/",
+  effectiveDate: "2026-07-01",
+  reviewedOn: "2026-11-01",
+};
+
 /** Scores are user-entered component points, not an official fitness conversion. */
 export function calculateFitness(fitness: Fitness | null | undefined): {
   paceSeconds: number;
   goalPaceSeconds: number;
   totalScore: number;
+  /** True when a saved entry exceeds a current maximum (from the old 60/20/20 scale). */
+  exceedsCurrentScale: boolean;
 } {
   const distance = nonnegative(fitness?.distance);
   const minutes = nonnegative(fitness?.minutes);
@@ -152,9 +172,22 @@ export function calculateFitness(fitness: Fitness | null | undefined): {
         ? finite((minutes * 60 + seconds) / distance)
         : 0,
     goalPaceSeconds: distance > 0 ? finite((goalMinutes * 60) / distance) : 0,
-    totalScore:
-      Math.min(60, nonnegative(fitness?.cardioScore)) +
-      Math.min(20, nonnegative(fitness?.strengthScore)) +
-      Math.min(20, nonnegative(fitness?.coreScore)),
+    totalScore: (
+      Object.keys(FITNESS_COMPONENT_MAXIMUMS) as Array<
+        keyof typeof FITNESS_COMPONENT_MAXIMUMS
+      >
+    ).reduce(
+      (total, key) =>
+        total +
+        Math.min(FITNESS_COMPONENT_MAXIMUMS[key], nonnegative(fitness?.[key])),
+      0,
+    ),
+    exceedsCurrentScale: (
+      Object.keys(FITNESS_COMPONENT_MAXIMUMS) as Array<
+        keyof typeof FITNESS_COMPONENT_MAXIMUMS
+      >
+    ).some(
+      (key) => nonnegative(fitness?.[key]) > FITNESS_COMPONENT_MAXIMUMS[key],
+    ),
   };
 }

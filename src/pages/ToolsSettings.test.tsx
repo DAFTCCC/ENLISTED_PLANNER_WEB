@@ -146,24 +146,31 @@ describe("practical calculators", () => {
     fireEvent.change(screen.getByLabelText("Run time: seconds"), {
       target: { value: "30" },
     });
-    fireEvent.change(screen.getByLabelText("Cardio (0–60)"), {
-      target: { value: "50" },
+    fireEvent.change(screen.getByLabelText("Cardio (0–50)"), {
+      target: { value: "45" },
     });
-    fireEvent.change(screen.getByLabelText("Strength (0–20)"), {
+    fireEvent.change(screen.getByLabelText("Waist-to-height (0–20)"), {
+      target: { value: "20" },
+    });
+    fireEvent.change(screen.getByLabelText("Strength (0–15)"), {
       target: { value: "18" },
     });
-    fireEvent.change(screen.getByLabelText("Core (0–20)"), {
-      target: { value: "19" },
+    fireEvent.change(screen.getByLabelText("Core (0–15)"), {
+      target: { value: "12.5" },
     });
-    expect(screen.getByText("8:20")).toBeTruthy();
-    expect(screen.getByText("87.0 / 100")).toBeTruthy();
+    // New plans default to the 2-mile run: 12:30 over 2 miles.
+    expect(screen.getByText("6:15")).toBeTruthy();
+    expect(screen.getByText("92.5 / 100")).toBeTruthy();
     expect(persisted().fitness).toMatchObject({
+      distance: 2,
       minutes: 12,
       seconds: 30,
-      cardioScore: 50,
-      strengthScore: 18,
-      coreScore: 19,
+      cardioScore: 45,
+      bodyCompositionScore: 20,
+      strengthScore: 15,
+      coreScore: 12.5,
     });
+    expect(screen.queryByText(/old 60\/20\/20 scale/)).toBeNull();
     expect(screen.getByText(/does not determine pass\/fail/)).toBeTruthy();
   });
 });

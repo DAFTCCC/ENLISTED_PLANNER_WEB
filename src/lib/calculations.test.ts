@@ -175,22 +175,42 @@ const fitness: Fitness = {
 
 describe("calculateFitness", () => {
   it("calculates seconds per distance unit for the run and goal", () => {
-    expect(calculateFitness(fitness)).toEqual({
+    expect(calculateFitness(fitness)).toMatchObject({
       paceSeconds: 500,
       goalPaceSeconds: 480,
-      totalScore: 87,
     });
   });
 
-  it("sums user-entered scores while enforcing the 60/20/20 component limits", () => {
+  it("sums user-entered scores on the 50/20/15/15 scale", () => {
+    expect(
+      calculateFitness({
+        ...fitness,
+        cardioScore: 44.5,
+        bodyCompositionScore: 20,
+        strengthScore: 12,
+        coreScore: 15,
+      }),
+    ).toMatchObject({ totalScore: 91.5, exceedsCurrentScale: false });
     expect(
       calculateFitness({
         ...fitness,
         cardioScore: 80,
+        bodyCompositionScore: 30,
         strengthScore: 25,
         coreScore: 23,
       }).totalScore,
     ).toBe(100);
+  });
+
+  it("flags points saved on the old 60/20/20 scale", () => {
+    const old = calculateFitness({
+      ...fitness,
+      cardioScore: 58,
+      strengthScore: 18,
+      coreScore: 19,
+    });
+    expect(old.exceedsCurrentScale).toBe(true);
+    expect(old.totalScore).toBe(80);
     expect(
       calculateFitness({
         ...fitness,

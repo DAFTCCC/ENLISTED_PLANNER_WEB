@@ -69,7 +69,7 @@ export function defaultState(): PlannerState {
       other: 0,
     },
     fitness: {
-      distance: 1.5,
+      distance: 2,
       minutes: 0,
       seconds: 0,
       goalMinutes: 0,
@@ -1191,21 +1191,29 @@ export function parsePlannerData(raw: string): PlannerState {
   ];
   const budget = object(state.budget, "budget", budgetKeys);
   for (const key of budgetKeys) number(budget[key], `budget.${key}`);
-  const fitness = object(state.fitness, "fitness", [
-    "distance",
-    "minutes",
-    "seconds",
-    "goalMinutes",
-    "cardioScore",
-    "strengthScore",
-    "coreScore",
-  ]);
+  const fitness = object(
+    state.fitness,
+    "fitness",
+    [
+      "distance",
+      "minutes",
+      "seconds",
+      "goalMinutes",
+      "cardioScore",
+      "strengthScore",
+      "coreScore",
+    ],
+    ["bodyCompositionScore"],
+  );
   for (const key of ["distance", "minutes", "goalMinutes"])
     number(fitness[key], `fitness.${key}`);
   number(fitness.seconds, "fitness.seconds", 59);
   number(fitness.cardioScore, "fitness.cardioScore", 60);
   number(fitness.strengthScore, "fitness.strengthScore", 20);
+  // Older plans used a 60/20/20 scale; keep accepting those saved values.
   number(fitness.coreScore, "fitness.coreScore", 20);
+  if (fitness.bodyCompositionScore !== undefined)
+    number(fitness.bodyCompositionScore, "fitness.bodyCompositionScore", 20);
   rows(
     state.habits,
     "habits",
