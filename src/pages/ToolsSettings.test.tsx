@@ -171,7 +171,7 @@ describe("practical calculators", () => {
       coreScore: 12.5,
     });
     expect(screen.queryByText(/old 60\/20\/20 scale/)).toBeNull();
-    expect(screen.getByText(/does not determine pass\/fail/)).toBeTruthy();
+    expect(screen.getByText(/set by AFMAN 36-2905/)).toBeTruthy();
   });
 });
 

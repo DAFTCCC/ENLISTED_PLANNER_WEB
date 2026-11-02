@@ -3,7 +3,9 @@ import { Calculator } from "lucide-react";
 import { usePlanner } from "../lib/planner";
 import {
   PFRA_EVENTS,
+  classifyAssessment,
   formatClock,
+  nextAssessmentMonths,
   parseClock,
   scoreEvent,
   scoreWaistToHeight,
@@ -43,7 +45,7 @@ function nextStep(event: PfraEvent, score: EventScore): string {
 
 /** Converts practice results to points with the official PFRA charts. */
 export default function FitnessScorer() {
-  const { mutate } = usePlanner();
+  const { mutate, state } = usePlanner();
   const [chart, setChart] = useState<PfraChart>("M");
   const [age, setAge] = useState("");
   const [cardioEvent, setCardioEvent] = useState<CardioEvent>("run2mile");
@@ -130,14 +132,14 @@ export default function FitnessScorer() {
   if (body)
     rows.push({
       label: "Waist-to-height ratio",
-      result: body.ratio.toFixed(2),
+      result: `${body.ratio.toFixed(2)} (${body.recordedWaist} in ÷ ${body.recordedHeight} in)`,
       points: `${body.points} / ${maxima.body}`,
       status: `${body.risk} risk`,
       good: body.risk === "Low" ? true : body.risk === "High" ? false : null,
       hint:
         body.points === maxima.body
           ? "Maximum points."
-          : "0.49 or lower earns 20. The ratio is cut off at two decimals.",
+          : "0.49 or lower earns 20. Waist is rounded down to the nearest ½ inch, height to the nearest ½ inch, and the ratio is cut off at two decimals.",
     });
 
   const scored = [cardioScore, strengthScore, coreScore, body].filter(Boolean);
@@ -146,7 +148,18 @@ export default function FitnessScorer() {
     (strengthScore?.points ?? 0) +
     (coreScore?.points ?? 0) +
     (body?.points ?? 0);
-  const complete = !!cardioScore && !!strengthScore && !!coreScore && !!body;
+  const complete =
+    (!!cardioScore || !!walk) && !!strengthScore && !!coreScore && !!body;
+  const result = classifyAssessment({
+    cardio: cardioScore,
+    walkPassed: walk ? walk.passed : null,
+    strength: strengthScore,
+    core: coreScore,
+    body,
+  });
+  const dueMonths = result
+    ? nextAssessmentMonths(result.category, state.profile.component)
+    : null;
 
   const invalid: string[] = [];
   if (needsAge && age && !ageValid) invalid.push("Enter an age from 17 to 99.");
@@ -330,14 +343,49 @@ export default function FitnessScorer() {
           )}
         </div>
         <div className="calculation-card" aria-live="polite">
-          <span className="eyebrow">CHART POINTS</span>
+          <span className="eyebrow">
+            {result?.estimated ? "ESTIMATED COMPOSITE" : "COMPOSITE"}
+          </span>
           <strong className="big-result">
-            {total.toFixed(1)}
+            {(result ? result.composite : total).toFixed(1)}
             <span> / 100</span>
           </strong>
+          {result && (
+            <div
+              className={`pfra-category ${result.category === "Unsatisfactory" ? "warn" : "ok"}`}
+            >
+              <strong>
+                {result.category}
+                {result.category === "Unsatisfactory" ? " (Not Ready)" : " (Ready)"}
+              </strong>
+              {result.reasons.length > 0 && (
+                <ul className="small">
+                  {result.reasons.map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              )}
+              {dueMonths && (
+                <span className="small">
+                  Next assessment due in {dueMonths} months
+                  {result.category === "Unsatisfactory"
+                    ? "."
+                    : state.profile.component === "Active Duty"
+                      ? "."
+                      : " (Guard and Reserve test every 12 months)."}
+                </span>
+              )}
+            </div>
+          )}
+          {result?.notes.map((note) => (
+            <p className="small muted" key={note}>
+              {note}
+            </p>
+          ))}
           {!complete && scored.length > 0 && (
             <p className="small muted">
-              Partial total: enter all four components for a full score.
+              Partial total: enter all four components for a full score and
+              result.
             </p>
           )}
           {rows.length > 0 && (
@@ -385,11 +433,16 @@ export default function FitnessScorer() {
               <a href={PFRA_CHART_SOURCE.url} target="_blank" rel="noopener noreferrer">
                 {PFRA_CHART_SOURCE.title}
               </a>
-              . The lowest value on each chart (marked *) is the component
-              minimum. The charts do not state the passing composite score or
-              how a walk is scored in the composite. Confirm both in AFMAN
-              36-2905 with your fitness assessment cell.
+              ; categories and minimums follow AFMAN 36-2905 (24 March 2026),
+              paras 3.6 and 3.7. Only scores entered in myFitness are official,
+              and exemptions or a body fat assessment can change the outcome.
             </p>
+            {state.profile.service === "Space Force" && (
+              <p className="small muted">
+                AFMAN 36-2905 does not apply to the Space Force. Use your
+                service's fitness guidance.
+              </p>
+            )}
           </div>
         </div>
       </div>

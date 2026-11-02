@@ -297,10 +297,10 @@ export default function Tools() {
               <strong>Preparation, not an official result</strong>
               <p className="small muted">
                 This tool sums manually entered points on the 50/20/15/15 scale
-                (cardio, waist-to-height, strength, core) in effect{" "}
-                {formatSourceDate(FITNESS_SCALE_SOURCE.effectiveDate)}. It does
-                not determine pass/fail, exemptions, component minimums, or
-                current policy eligibility. Verify your assessment format and
+                (cardio, waist-to-height, strength, core) set by AFMAN 36-2905
+                dated {formatSourceDate(FITNESS_SCALE_SOURCE.documentDate)}. To
+                convert reps and times and see your result category, use the
+                practice assessment scorer below. Verify your assessment format and
                 requirements with your fitness program office.
               </p>
               <p className="small muted">

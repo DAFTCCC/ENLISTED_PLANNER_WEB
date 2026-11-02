@@ -475,3 +475,27 @@
   color: #a5413c;
   font-weight: 600 !important;
 }
+.pfra-category {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.pfra-category.ok {
+  border-color: var(--fitness);
+}
+.pfra-category.ok > strong {
+  color: var(--fitness);
+}
+.pfra-category.warn {
+  border-color: #e3b4af;
+}
+.pfra-category.warn > strong {
+  color: #a5413c;
+}
+.pfra-category ul {
+  margin: 0;
+  padding-left: 18px;
+}
