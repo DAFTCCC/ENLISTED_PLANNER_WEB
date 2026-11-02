@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   ageBand,
+  classifyAssessment,
+  nextAssessmentMonths,
   parseClock,
   scoreEvent,
   scoreWaistToHeight,
@@ -85,7 +87,7 @@ describe("PFRA scoring", () => {
 
   it("truncates the waist-to-height ratio like the chart's lookup table", () => {
     expect(waistToHeightRatio(29, 60.5)).toBe(0.47);
-    expect(scoreWaistToHeight(36, 69)).toEqual({
+    expect(scoreWaistToHeight(36, 69)).toMatchObject({
       ratio: 0.52,
       points: 17,
       risk: "Moderate",
@@ -114,5 +116,117 @@ describe("PFRA scoring", () => {
     expect(parseClock("15:60")).toBeNull();
     expect(scoreEvent("situp", "M", 16, 40)).toBeNull();
     expect(scoreEvent("situp", "M", 30, -1)).toBeNull();
+  });
+});
+
+describe("AFMAN 36-2905 rules", () => {
+  const male = (event: PfraEvent, age: number, value: number) =>
+    scoreEvent(event, "M", age, value);
+  const body = scoreWaistToHeight(33, 70);
+
+  it("reproduces the manual's WHtR example and measurement rounding", () => {
+    // Para 3.15.4.2: 39.5 / 72 = 0.5486, truncated to 0.54.
+    expect(scoreWaistToHeight(39.5, 72)).toMatchObject({ ratio: 0.54, points: 15 });
+    // Para 3.15.4.5 / 3.15.2.3: waist down to 1/2 inch, height to nearest 1/2 inch.
+    expect(scoreWaistToHeight(33.9, 69.8)).toMatchObject({
+      recordedWaist: 33.5,
+      recordedHeight: 70,
+    });
+  });
+
+  it("classifies Excellent, Satisfactory, and Unsatisfactory", () => {
+    expect(
+      classifyAssessment({
+        cardio: male("run2mile", 27, clock("14:00")),
+        walkPassed: null,
+        strength: male("pushup", 27, 55),
+        core: male("situp", 27, 52),
+        body,
+      }),
+    ).toMatchObject({ composite: 94, category: "Excellent", reasons: [] });
+    expect(
+      classifyAssessment({
+        cardio: male("run2mile", 22, clock("16:16")),
+        walkPassed: null,
+        strength: male("pushup", 22, 52),
+        core: male("situp", 22, 48),
+        body: scoreWaistToHeight(37, 70),
+      }),
+    ).toMatchObject({ composite: 79, category: "Satisfactory" });
+  });
+
+  it("fails any missed component minimum even with a high composite", () => {
+    const result = classifyAssessment({
+      cardio: male("run2mile", 22, clock("13:25")),
+      walkPassed: null,
+      strength: male("pushup", 22, 67),
+      core: male("situp", 22, 20),
+      body,
+    });
+    expect(result?.composite).toBe(85);
+    expect(result?.category).toBe("Unsatisfactory");
+    expect(result?.reasons).toContain("Core endurance is below the minimum.");
+  });
+
+  it("body composition has no minimum", () => {
+    expect(
+      classifyAssessment({
+        cardio: male("run2mile", 22, clock("13:25")),
+        walkPassed: null,
+        strength: male("pushup", 22, 67),
+        core: male("situp", 22, 58),
+        body: scoreWaistToHeight(44, 70),
+      }),
+    ).toMatchObject({ composite: 80, category: "Satisfactory" });
+  });
+
+  it("flags the Tier 2 body fat assessment only above 0.55 when unsatisfactory", () => {
+    const failing = {
+      cardio: male("run2mile", 22, clock("19:45")),
+      walkPassed: null,
+      strength: male("pushup", 22, 30),
+      core: male("situp", 22, 33),
+    };
+    expect(
+      classifyAssessment({ ...failing, body: scoreWaistToHeight(42, 70) })
+        ?.bodyFatAssessmentRequired,
+    ).toBe(true);
+    // 38.5 / 70 = 0.55 exactly is not above .55.
+    expect(
+      classifyAssessment({ ...failing, body: scoreWaistToHeight(38.5, 70) })
+        ?.bodyFatAssessmentRequired,
+    ).toBe(false);
+  });
+
+  it("treats the walk as pass/fail with an estimated composite and no Excellent", () => {
+    const strong = {
+      cardio: null,
+      strength: male("pushup", 22, 67),
+      core: male("situp", 22, 58),
+      body,
+    };
+    expect(classifyAssessment({ ...strong, walkPassed: true })).toMatchObject({
+      composite: 100,
+      estimated: true,
+      category: "Satisfactory",
+    });
+    expect(classifyAssessment({ ...strong, walkPassed: false })?.category).toBe(
+      "Unsatisfactory",
+    );
+  });
+
+  it("waits for every component and sets the next due date", () => {
+    expect(
+      classifyAssessment({
+        cardio: null,
+        walkPassed: null,
+        strength: male("pushup", 22, 67),
+        core: male("situp", 22, 58),
+        body,
+      }),
+    ).toBeNull();
+    expect(nextAssessmentMonths("Excellent", "Active Duty")).toBe(6);
+    expect(nextAssessmentMonths("Satisfactory", "Guard")).toBe(12);
+    expect(nextAssessmentMonths("Unsatisfactory", "Reserve")).toBe(3);
   });
 });

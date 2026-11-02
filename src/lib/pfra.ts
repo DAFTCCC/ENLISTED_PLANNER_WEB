@@ -113,12 +113,31 @@ export function waistToHeightRatio(waistInches: number, heightInches: number): n
   return Math.floor((waistInches / heightInches) * 100 + 1e-9) / 100;
 }
 
+/**
+ * AFMAN 36-2905 para 3.15.2.3 and 3.15.4.5: height is recorded to the
+ * nearest 1/2 inch; the waist is rounded down to the nearest 1/2 inch.
+ */
+export function recordedMeasurements(waistInches: number, heightInches: number): {
+  waist: number;
+  height: number;
+} | null {
+  if (!(waistInches > 0) || !(heightInches > 0)) return null;
+  return {
+    waist: Math.floor(waistInches * 2 + 1e-9) / 2,
+    height: Math.round(heightInches * 2) / 2,
+  };
+}
+
 export function scoreWaistToHeight(waistInches: number, heightInches: number): {
   ratio: number;
   points: number;
   risk: WhtrRisk;
+  recordedWaist: number;
+  recordedHeight: number;
 } | null {
-  const ratio = waistToHeightRatio(waistInches, heightInches);
+  const recorded = recordedMeasurements(waistInches, heightInches);
+  if (!recorded) return null;
+  const ratio = waistToHeightRatio(recorded.waist, recorded.height);
   if (ratio === null) return null;
   const { points, ratios } = PFRA_WHTR_CHART;
   let index = ratios.findIndex((limit) => ratio <= limit + 1e-9);
@@ -127,6 +146,8 @@ export function scoreWaistToHeight(waistInches: number, heightInches: number): {
     ratio,
     points: points[index],
     risk: ratio <= 0.49 + 1e-9 ? "Low" : ratio <= 0.54 + 1e-9 ? "Moderate" : "High",
+    recordedWaist: recorded.waist,
+    recordedHeight: recorded.height,
   };
 }
 
@@ -138,4 +159,83 @@ export function scoreWalk(chart: "M" | "F", age: number, seconds: number): {
   if (!Number.isInteger(age) || age < 17 || !(seconds > 0)) return null;
   const row = PFRA_WALK_MAXIMUMS.find((entry) => age <= entry.maxAge)!;
   return { maximum: row[chart], passed: seconds <= row[chart] };
+}
+
+export type PfraCategory = "Excellent" | "Satisfactory" | "Unsatisfactory";
+
+export interface AssessmentInput {
+  cardio: EventScore | null;
+  /** Set instead of cardio when the 2.0 km walk was assessed. */
+  walkPassed: boolean | null;
+  strength: EventScore | null;
+  core: EventScore | null;
+  body: { points: number; ratio: number } | null;
+}
+
+export interface AssessmentResult {
+  composite: number;
+  /** True for walk assessments, where myFitness calculates the composite. */
+  estimated: boolean;
+  category: PfraCategory;
+  reasons: string[];
+  notes: string[];
+  bodyFatAssessmentRequired: boolean;
+}
+
+/**
+ * Overall result under AFMAN 36-2905 (24 March 2026):
+ * - 3.1 / 3.7.1: minimums apply to cardio, strength, and core; body
+ *   composition has none. Composite of 75 or higher is required.
+ * - 3.6.1: Excellent (> 90), Satisfactory (75 - 89.9), Unsatisfactory
+ *   (< 74.9 and/or any component minimum not met).
+ * - 3.7.3: the walk is pass/fail, earns no points, and cannot be Excellent.
+ * - 3.1.2.1.1: WHtR > .55 with an unsatisfactory PFRA requires a Tier 2 BFA.
+ * Returns null until every component has a result.
+ */
+export function classifyAssessment(input: AssessmentInput): AssessmentResult | null {
+  const { cardio, walkPassed, strength, core, body } = input;
+  const walk = walkPassed !== null;
+  if (!strength || !core || !body || (!cardio && !walk)) return null;
+  const reasons: string[] = [];
+  const notes: string[] = [];
+  if (walk && !walkPassed) reasons.push("The walk time is over the maximum.");
+  if (!walk && cardio && !cardio.metMinimum) reasons.push("Cardio is below the minimum.");
+  if (!strength.metMinimum) reasons.push("Muscular strength is below the minimum.");
+  if (!core.metMinimum) reasons.push("Core endurance is below the minimum.");
+
+  const earned = (walk ? 0 : cardio!.points) + strength.points + core.points + body.points;
+  const possible = walk ? 50 : 100;
+  const composite = Math.round((earned / possible) * 1000) / 10;
+  if (walk)
+    notes.push(
+      "With the walk, myFitness calculates the composite from the assessed components (para 3.7.3). This estimate assumes points earned divided by points possible.",
+    );
+  if (composite < 75) reasons.push("The composite is below 75.");
+
+  let category: PfraCategory = "Unsatisfactory";
+  if (reasons.length === 0) {
+    category = composite > 90 && !walk ? "Excellent" : "Satisfactory";
+    if (walk && composite > 90)
+      notes.push("Walk assessments cannot earn Excellent (para 3.7.3).");
+    if (composite === 90)
+      notes.push(
+        "The manual lists Excellent as above 90 and Satisfactory as 75 to 89.9, so exactly 90.0 is not clearly covered. Confirm in myFitness.",
+      );
+  }
+  const bodyFatAssessmentRequired =
+    category === "Unsatisfactory" && body.ratio > 0.55 + 1e-9;
+  if (bodyFatAssessmentRequired)
+    notes.push(
+      "A waist-to-height ratio above 0.55 with an unsatisfactory result requires a Tier 2 body fat assessment (para 3.1.2.1.1).",
+    );
+  return { composite, estimated: walk, category, reasons, notes, bodyFatAssessmentRequired };
+}
+
+/** Table 3.3: months until the next assessment is due. */
+export function nextAssessmentMonths(
+  category: PfraCategory,
+  component: "Active Duty" | "Guard" | "Reserve",
+): number {
+  if (category === "Unsatisfactory") return 3;
+  return component === "Active Duty" ? 6 : 12;
 }

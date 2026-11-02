@@ -133,9 +133,8 @@ export function calculateBudget(budget: Budget | null | undefined): {
 }
 
 /**
- * Component maximums for the Physical Fitness Assessment in effect July 1,
- * 2026: cardio 50, waist-to-height 20, strength 15, core 15.
- * Source: https://www.af.mil/Fitness/ (reviewed 2026-11-01).
+ * Component maximums: cardio 50, waist-to-height 20, strength 15, core 15.
+ * Source: AFMAN 36-2905 (24 March 2026), para 3.7.1 (reviewed 2026-11-01).
  */
 export const FITNESS_COMPONENT_MAXIMUMS = {
   cardioScore: 50,
@@ -144,9 +143,9 @@ export const FITNESS_COMPONENT_MAXIMUMS = {
   coreScore: 15,
 } as const;
 export const FITNESS_SCALE_SOURCE = {
-  title: "Department of the Air Force, Culture of Fitness",
-  url: "https://www.af.mil/Fitness/",
-  effectiveDate: "2026-07-01",
+  title: "AFMAN 36-2905, Air Force Physical Fitness Readiness Program, para 3.7.1",
+  url: "https://www.e-publishing.af.mil/",
+  documentDate: "2026-03-24",
   reviewedOn: "2026-11-01",
 };
 

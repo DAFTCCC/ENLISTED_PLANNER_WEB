@@ -45,6 +45,8 @@ describe("practice assessment scoring", () => {
     expect(view.getByText("12 / 15")).toBeTruthy();
     expect(view.getByText("13 / 15")).toBeTruthy();
     expect(view.getByText("20 / 20")).toBeTruthy();
+    expect(view.getByText("Excellent (Ready)")).toBeTruthy();
+    expect(view.getByText(/Next assessment due in 6 months/)).toBeTruthy();
     fireEvent.click(view.getByRole("button", { name: "Use these points" }));
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!).fitness;
     expect(saved).toMatchObject({
